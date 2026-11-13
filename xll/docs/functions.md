@@ -53,6 +53,10 @@ leave matters:
 | `AG.TABLES` | n × 1 — one edition per **row** | n × 1 |
 | `AG.VERSION`, `AG.LASTERROR` | 1 × 1 (text) | 1 × 1 |
 
+The sample workbook wraps `AG.TABLEINFO` and `AG.CACHEINFO` in `TRANSPOSE()` so
+they stand up as columns beside `AG.TABLES`; that is a layout choice, not a
+requirement.
+
 `AG.TABLES` is the one to watch: it returns a column, so it needs empty cells
 *below* the anchor. Reserve a row for it and Excel gives you `#SPILL!`, because
 the cell underneath is already in use. Nothing is transposed for you — wrap the

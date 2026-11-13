@@ -585,71 +585,55 @@ def sheet_functions(wb: Workbook) -> None:
         note_block(row, why)
 
     # ---- diagnostics ----
+    # Every list-returning function here is wrapped in TRANSPOSE so it spills
+    # DOWN a column: a row-per-function table cannot hold a horizontal result
+    # without running into the next function's row. AG.TABLES is already a
+    # column; TABLEINFO (1x4) and CACHEINFO (1x6) come back as rows.
     r = 6 + len(rows) + 2
-    subhead(ws, r, "Diagnostics: which tables are available, and what did the last call complain about")
-    header_row(ws, r + 1, ["Function", "Arguments", "live (1-4)", "", "", "", "check"])
-    ws.merge_cells(start_row=r + 1, start_column=3, end_row=r + 1, end_column=6)
-    c = ws.cell(row=r + 1, column=8, value="What it means")
-    c.font, c.fill, c.alignment, c.border = F_HDR, FILL_HDR, CENTER, BOX
-    ws.merge_cells(start_row=r + 1, start_column=8, end_row=r + 1, end_column=10)
-    c = ws.cell(row=r + 1, column=7, value="check")
-    c.font, c.fill, c.alignment, c.border = F_HDR, FILL_HDR, CENTER, BOX
+    subhead(ws, r, "Diagnostics: what is loaded, and what the last call complained about")
+    header_row(ws, r + 1, ["Function", "Arguments", "live (a column)", "expected", "check",
+                           "What it means"])
 
-    row = r + 2
-    for fn, args, formula, exp, why in (
-        ("AG.TABLEINFO", "(default table)", "=AG.TABLEINFO()", [2025, 22, 96, 2],
-         "One row: year, distances, ages, sexes."),
-        ("AG.TABLEINFO", "2020", "=AG.TABLEINFO(2020)", [2020, 22, 96, 2],
-         "The same for the 2020 edition - the tables that were in force then."),
-    ):
+    def column(ws, row: int, fn: str, args: str, formula: str, expect: list,
+               why: str, *, check: bool = True) -> int:
+        """One function per block, returning a column of len(expect) values."""
+        n = len(expect) if expect else 6
         for col, value in (("A", fn), ("B", args)):
             c = ws[f"{col}{row}"]
             c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
-        live(ws, f"C{row}", formula, None, ref_range=f"C{row}:F{row}", shape=(1, len(exp)))
-        c = ws[f"G{row}"]
-        c.value = (f'=IF(SUMPRODUCT(--(ABS(C{row}:F{row}-C{row + 1}:F{row + 1})>0.0001))=0,'
-                   f'"OK","MISMATCH")')
-        c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
-        for j, v in enumerate(exp):
-            expected(ws, f"{get_column_letter(3 + j)}{row + 1}", v, "0")
-        ws[f"A{row + 1}"].value = "expected"
-        ws[f"A{row + 1}"].font, ws[f"A{row + 1}"].alignment = F_NOTE, LEFT
-        c = ws.cell(row=row, column=8, value=why)
+        live(ws, f"C{row}", formula, None, ref_range=f"C{row}:C{row + n - 1}", shape=(n, 1))
+        for j, v in enumerate(expect or []):
+            expected(ws, f"D{row + j}", v, "0")
+        if expect and check:
+            c = ws[f"E{row}"]
+            c.value = (f'=IF(COUNTA(C{row}:C{row + n - 1})=0,"",IFERROR(IF(SUMPRODUCT('
+                       f'--(ABS(C{row}:C{row + n - 1}-D{row}:D{row + n - 1})>0.0001))=0,'
+                       f'"OK","MISMATCH"),""))')
+            c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
+        c = ws.cell(row=row, column=6, value=why)
         c.font, c.alignment = F_BODY, LEFT_WRAP
-        ws.merge_cells(start_row=row, start_column=8, end_row=row, end_column=10)
-        ws.row_dimensions[row].height = 30
-        row += 2
+        ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
+        ws.row_dimensions[row].height = 44
+        return row + max(n, 2) + 1
 
-    # AG.TABLES() returns one edition per row, so it cannot live in the
-    # one-row-per-function table above: its 4-row spill would land on the row
-    # below and Excel would show #SPILL!.
-    subhead(ws, row, "AG.TABLES: the editions compiled into this build, newest first")
-    row += 1
-    header_row(ws, row, ["Function", "Arguments", "live (a column)", "expected", "check"])
-    c = ws.cell(row=row, column=6, value="What it means")
-    c.font, c.fill, c.alignment, c.border = F_HDR, FILL_HDR, CENTER, BOX
-    ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
-    row += 1
-    for col, value in (("A", "AG.TABLES"), ("B", "(none)")):
-        c = ws[f"{col}{row}"]
-        c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
-    live(ws, f"C{row}", "=AG.TABLES()", None, ref_range=f"C{row}:C{row + 3}", shape=(4, 1))
-    for j, v in enumerate([2025, 2020, 2015, 2010]):
-        expected(ws, f"D{row + j}", v, "0")
-    c = ws[f"E{row}"]
-    c.value = (f'=IF(COUNTA(C{row}:C{row + 3})=0,"",IFERROR(IF(SUMPRODUCT('
-               f'--(ABS(C{row}:C{row + 3}-D{row}:D{row + 3})>0.0001))=0,"OK","MISMATCH"),""))')
-    c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
-    c = ws.cell(row=row, column=6,
-                value="One edition per row: the function returns a column, not a row, which is "
-                      "why it has its own block. Any of them can be the fifth argument of a "
-                      "grading function.")
-    c.font, c.alignment = F_BODY, LEFT_WRAP
-    ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
-    ws.row_dimensions[row].height = 44
-    row += 5
+    row = r + 2
+    row = column(ws, row, "AG.TABLES", "(none)", "=AG.TABLES()", [2025, 2020, 2015, 2010],
+                 "The editions compiled into this build, newest first. Any of them can be the "
+                 "fifth argument of a grading function. Already a column: one edition per row.")
+    row = column(ws, row, "AG.TABLEINFO", "(default table)", "=TRANSPOSE(AG.TABLEINFO())",
+                 [2025, 22, 96, 2],
+                 "Year, distances, ages, sexes. The function returns a 1x4 row, so it is wrapped "
+                 "in TRANSPOSE to stand up as a column - the labels are in the reference sheet.")
+    row = column(ws, row, "AG.TABLEINFO", "2020", "=TRANSPOSE(AG.TABLEINFO(2020))",
+                 [2020, 22, 96, 2],
+                 "The same for the 2020 edition - the tables that were in force then.")
+    row = column(ws, row, "AG.CACHEINFO", "(none)", "=TRANSPOSE(AG.CACHEINFO())", None,
+                 "Six counters: built-in editions, loaded CSVs, custom ranges held, cache hits, "
+                 "misses, capacity. No expected values - they depend on what this workbook has "
+                 "done. Recalculate and watch the hit count climb: a range table is parsed once, "
+                 "not once per cell.", check=False)
 
-    for fn, args, formula, exp_text, why, check in (
+    for fn, args, formula, exp_text, why, chk in (
         ("AG.LASTERROR", "(none)", "=AG.LASTERROR()",
          "text: 'no error', or the reason for the most recent failure",
          "The explanation for the last failed call - the first thing to reach for when a "
@@ -667,24 +651,13 @@ def sheet_functions(wb: Workbook) -> None:
         live(ws, f"C{row}", formula, None)
         expected(ws, f"D{row}", exp_text)
         c = ws[f"E{row}"]
-        c.value = check.format(c=f"C{row}", r=row)
+        c.value = chk.format(c=f"C{row}", r=row)
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         note_block(row, why)
         row += 1
 
-    # AG.CACHEINFO live; AG.CACHECLEAR shown but not live, because a live one
-    # would empty the cache on every recalculation and defeat the demo.
-    for col, value in (("A", "AG.CACHEINFO"), ("B", "(none)")):
-        c = ws[f"{col}{row}"]
-        c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
-    live(ws, f"C{row}", "=AG.CACHEINFO()", None, ref_range=f"C{row}:H{row}", shape=(1, 6))
-    note_block(row, "Six counters: built-in editions, loaded CSVs, custom ranges held, cache "
-                    "hits, misses, capacity. No expected values - they depend on what this "
-                    "workbook has done. Recalculate and watch the hit count climb: a range table "
-                    "is parsed once, not once per cell.",
-               first_col=9, last_col=13, wrap=64)
-    row += 1
-
+    # AG.CACHECLEAR shown but not live: a live one would empty the cache on
+    # every recalculation and defeat the demo.
     for col, value in (("A", "AG.CACHECLEAR"), ("B", "(none)")):
         c = ws[f"{col}{row}"]
         c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
@@ -697,6 +670,31 @@ def sheet_functions(wb: Workbook) -> None:
                     "copy would empty the cache on every recalculation. Type it when you need it "
                     "- after editing a table CSV. Ad hoc ranges are keyed by a hash of their "
                     "contents and can never go stale, so only CSVs need this.")
+    row += 2
+
+    # ---- calculation mode, as Excel itself reports it ----
+    subhead(ws, row, "Calculation mode: what the file asks for, and what Excel is actually doing")
+    row += 1
+    header_row(ws, row, ["Check", "live", "What it means"])
+    row += 1
+    c = ws[f"B{row}"]
+    c.value = '=INFO("RECALC")'          # native function, so a plain formula
+    c.font, c.border = F_MONO, BOX
+    c.fill, c.alignment = FILL_LIVE, LEFT
+    c = ws[f"A{row}"]
+    c.value, c.font, c.border, c.alignment = '=INFO("RECALC")', F_MONO, BOX, LEFT
+    c.data_type, c.quotePrefix = "s", True
+    c = ws.cell(row=row, column=3,
+                value="Excel's own answer for this session. The workbook is saved with "
+                      "calcPr calcMode=\"auto\" fullCalcOnLoad=\"1\" forceFullCalc=\"1\", so a "
+                      "session that starts with this file reports Automatic. Excel gives every "
+                      "workbook in a session the mode of the FIRST one opened and ignores what the "
+                      "later files ask for, so Manual here means this session started manual - "
+                      "Personal.xlsb, a startup template, or another workbook. Close all workbooks "
+                      "and open this one, or set File > Options > Formulas > Workbook Calculation.")
+    c.font, c.alignment = F_BODY, LEFT_WRAP
+    ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=10)
+    ws.row_dimensions[row].height = 88
 
     ws.freeze_panes = "A6"
     ws.page_setup.orientation = "landscape"
@@ -1517,6 +1515,8 @@ def build(path: Path) -> None:
     wb.calculation.calcMode = "auto"          # not manual, not autoNoTable
     wb.calculation.fullCalcOnLoad = True
     wb.calculation.forceFullCalc = True
+    # and do not save stale values from a manual session
+    wb.calculation.calcOnSave = True
 
     problems = validate(wb)
     if problems:
