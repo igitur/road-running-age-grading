@@ -625,13 +625,25 @@ def sheet_one_call(wb: Workbook) -> None:
     row = column(ws, row, "RRAG.TABLES", "(none)", "=RRAG.TABLES()", [2025, 2020, 2015, 2010],
                  "The editions compiled into this build, newest first. Any of them can be the "
                  "fifth argument of a grading function. Already a column: one edition per row.")
+    def tableinfo(year: int) -> list:
+        """What RRAG.TABLEINFO reports, read from the data rather than typed.
+
+        Deriving this matters: the editions do not have the same shape. 2025 has
+        22 distances, 2020 has 21 (no 7 Mile), 2015 and 2010 have 20 - so a
+        hand-written 22 makes the 2020 row cry MISMATCH against a correct 21.
+        """
+        t = tbl("M", year)
+        return [year, len(t.events), len(t.ages), 2]
+
     row = column(ws, row, "RRAG.TABLEINFO", "(default table)", "=TRANSPOSE(RRAG.TABLEINFO())",
-                 [2025, 22, 96, 2],
+                 tableinfo(2025),
                  "Year, distances, ages, sexes. The function returns a 1x4 row, so it is wrapped "
                  "in TRANSPOSE to stand up as a column - the labels are in the reference sheet.")
     row = column(ws, row, "RRAG.TABLEINFO", "2020", "=TRANSPOSE(RRAG.TABLEINFO(2020))",
-                 [2020, 22, 96, 2],
-                 "The same for the 2020 edition - the tables that were in force then.")
+                 tableinfo(2020),
+                 "The same for the 2020 edition - the tables that were in force then. Note the "
+                 "distance count: the editions differ in shape, and 2020 has one fewer row "
+                 "than 2025.")
     row = column(ws, row, "RRAG.CACHEINFO", "(none)", "=TRANSPOSE(RRAG.CACHEINFO())", None,
                  "Six counters: built-in editions, loaded CSVs, custom ranges held, cache hits, "
                  "misses, capacity. No expected values - they depend on what this workbook has "
@@ -1623,6 +1635,11 @@ def guard_verdicts(wb) -> None:
             for c in row:
                 v = c.value
                 if not isinstance(v, str) or not v.startswith("=") or '"MISMATCH"' not in v:
+                    continue
+                if "COUNTA(" in v:
+                    # Some blocks write their own blank guard. Wrapping again
+                    # nests the same test and doubles the formula's length for
+                    # nothing, so treat an existing guard as done.
                     continue
                 inner = v[1:]
                 m = re.search(r"ABS\(([^()-]+?)-", v)
