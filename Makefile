@@ -4,13 +4,15 @@
 PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 UPSTREAM := https://github.com/AlanLyttonJones/Age-Grade-Tables.git
 
-.PHONY: help all setup fetch unpack data verify curve wiki check check-links xll-test clean
+.PHONY: help all setup fetch unpack data pkgdata dist verify curve wiki check check-links xll-test sample clean
 
 help:
 	@echo "setup    create .venv and install tool dependencies"
 	@echo "fetch    download the source artefacts (calculator page, xlsm, upstream clone)"
 	@echo "unpack   unzip the xlsm (sheet XML + vbaProject.bin) into raw/"
 	@echo "data     re-extract factor tables from page.html -> data/mldr_road.json"
+	@echo "pkgdata  copy data/mldr_road.json into the package, so a wheel ships its tables"
+	@echo "dist     build the sdist and wheel into dist/"
 	@echo "verify   run checks A/B/C (exact grid, JS oracle, standards cross-check)"
 	@echo "curve    reproduce factor curves from the fitted parameters"
 	@echo "wiki     render docs/*.md -> wiki/*.html"
@@ -43,6 +45,15 @@ unpack:
 
 data:
 	$(PY) tools/extract_tables.py page.html data/mldr_road.json
+	$(PY) tools/sync_package_data.py
+
+pkgdata:
+	$(PY) tools/sync_package_data.py
+
+# setuptools-scm takes the version from the git tag, so this is only meaningful
+# (and only publishable) on a tagged commit.
+dist:
+	$(PY) -m build
 
 verify:
 	$(PY) tools/verify.py --all
@@ -65,6 +76,7 @@ sample:
 	$(PY) xll/examples/build_sample_workbook.py
 
 check:
+	$(PY) tools/sync_package_data.py --check && \
 	$(PY) tools/verify.py --all && \
 	$(PY) tools/reproduce_curve.py && \
 	$(PY) tools/render_wiki.py --check && \

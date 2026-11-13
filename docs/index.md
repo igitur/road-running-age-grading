@@ -18,6 +18,7 @@ the code, and so every claim can be re-derived and re-checked.
 | 08 | [Validation](08-validation.md) | Three independent checks (exact grid, JavaScript oracle, standards cross-check), their results, and how to reproduce them. |
 | 09 | [History and review process](09-history.md) | 1989 → 2025 revisions, what changed in 2025 and why, and the checklist for producing the next set. |
 | 10 | [The Excel add-in](10-excel-addin.md) | Grading whole squads in Excel: columns instead of single values, four editions, custom tables, caching, and what is verified. Includes [the framework patch report](../xll/docs/framework-patches.md). |
+| 11 | [Releasing and publishing](11-releasing.md) | Tag-driven versions, what a release contains, trusted publishing to PyPI, rehearsing and yanking. |
 | — | [Glossary](glossary.md) | Terms, symbols and the names different tools use for the same thing. |
 | — | [References](references.md) | Primary sources, papers, upstream repository, contacts. |
 

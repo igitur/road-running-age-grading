@@ -7,6 +7,15 @@
     68.49
 """
 
+try:  # from the installed metadata; set by the git tag at build time
+    from importlib.metadata import PackageNotFoundError, version as _dist_version
+    try:
+        __version__ = _dist_version("aggrade")
+    except PackageNotFoundError:      # running from an unbuilt source tree
+        __version__ = "0.0.0+unknown"
+except ImportError:                    # pragma: no cover - Python < 3.8
+    __version__ = "0.0.0+unknown"
+
 from .core import (  # noqa: F401
     CALIBRATION_KM,
     Event,
@@ -25,7 +34,7 @@ from .ui import (  # noqa: F401
 )
 
 __all__ = [
-    "CALIBRATION_KM", "Event", "Grade", "Lookup", "OutOfRange", "Tables",
+    "__version__", "CALIBRATION_KM", "Event", "Grade", "Lookup", "OutOfRange", "Tables",
     "load_tables", "table", "format_time", "parse_time", "ui_percent",
     "ui_seconds",
 ]

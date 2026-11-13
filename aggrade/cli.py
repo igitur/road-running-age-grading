@@ -19,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from aggrade import __version__  # noqa: E402
 from aggrade.core import DEFAULT_DATA, OutOfRange, load_tables  # noqa: E402
 from aggrade.ui import format_time, parse_time, ui_percent  # noqa: E402
 
@@ -70,11 +71,14 @@ def main(argv: list[str] | None = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
+    ap.add_argument("--version", action="version",
+                    version=f"aggrade {__version__}")
     ap.add_argument("time", nargs="?", help="performance: h:mm:ss, mm:ss or seconds")
     ap.add_argument("--age", type=float, help="age in years at race day (fractional ok)")
     ap.add_argument("--sex", "-s", default="M", choices=["M", "F", "m", "f"],
                     help="M or F (default M)")
-    ap.add_argument("--distance", "-d", help="distance, e.g. 10k, half, marathon, 12.7")
+    ap.add_argument("--distance", "-d", help="distance: 10k, 10 km, 6.2 miles, half marathon, "
+                         "marathon, or a bare number of km")
     ap.add_argument("--event", "-e", help="exact table event name, e.g. 10kmRoad")
     ap.add_argument("--year", type=int, default=2025, help="table year (default 2025)")
     ap.add_argument("--file", type=Path, default=DEFAULT_DATA, help="tables JSON")

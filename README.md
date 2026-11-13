@@ -21,6 +21,17 @@ age-graded        24:50.1
 age grade          106.30%      # above 100% = better than the age standard
 ```
 
+## Install
+
+```console
+$ pip install aggrade
+$ aggrade 40:00 --age 40 --sex M --distance 10k
+```
+
+Stdlib-only, no dependencies, and the wheel carries its own tables so it works
+offline. Versions come from the git tag; see
+[docs/11-releasing.md](docs/11-releasing.md).
+
 ## Where to start
 
 | If you want to… | Read |
@@ -35,6 +46,7 @@ age grade          106.30%      # above 100% = better than the age standard
 | Check our claims | [docs/08-validation.md](docs/08-validation.md) |
 | Know the revision history / what 2026 needs | [docs/09-history.md](docs/09-history.md) |
 | **Grade a whole club in Excel** | [docs/10-excel-addin.md](docs/10-excel-addin.md) |
+| Release or publish a version | [docs/11-releasing.md](docs/11-releasing.md) |
 
 Full index: [docs/index.md](docs/index.md).
 

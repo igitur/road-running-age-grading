@@ -1,0 +1,161 @@
+name: release
+
+# A tag starting with v is the whole release procedure. The version is not in
+# any file: setuptools-scm derives it from the tag, so `git tag v0.0.2` publishes
+# 0.0.2 and an untagged commit cannot ship by accident.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Optional note. A dispatch builds and tests but publishes nothing (no tag)."
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build and test the distribution
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # setuptools-scm needs the tags, so a shallow clone is not enough.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: The version must be the tag
+        id: version
+        run: |
+          set -euo pipefail
+          built=$(ls dist/*.whl | sed -E 's|^dist/aggrade-([^-]+)-.*$|\1|')
+          echo "built $built"
+          echo "version=$built" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME#v}"
+            if [ "$built" != "$tag" ]; then
+              echo "::error::tag is $GITHUB_REF_NAME but the build is $built - bump or move the tag"
+              exit 1
+            fi
+          else
+            echo "::notice::not a tag, so nothing will be published (version $built)"
+          fi
+
+      - name: The wheel must carry its own tables
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/wheeltest
+          /tmp/wheeltest/bin/pip install --quiet --disable-pip-version-check dist/*.whl
+          # Run from outside the checkout: aggrade must not fall back to ../data.
+          cd /tmp
+          /tmp/wheeltest/bin/python "$GITHUB_WORKSPACE/tools/wheel_smoke.py" "${{ steps.version.outputs.version }}"
+
+      - name: Add the sample workbook to the assets
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet "openpyxl>=3.1"
+          # --check rebuilds it and fails if the committed copy is stale, so the
+          # asset is known to match this commit rather than merely to exist.
+          python xll/examples/build_sample_workbook.py --check
+          cp xll/examples/age-grading-sample.xlsx dist/
+
+      - name: Upload the distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  github-release:
+    name: publish the GitHub release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          # Named explicitly: `sha256sum *` would include the file being written.
+          sha256sum *.whl *.tar.gz age-grading-sample.xlsx > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "::error::a release for $GITHUB_REF_NAME already exists - bump the version instead of reusing a tag"
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
+          gh release view "$GITHUB_REF_NAME" --json url,assets \
+            --jq '.url, (.assets[] | "  " + .name + " " + (.size|tostring) + " B")'
+
+  pypi:
+    name: publish to PyPI
+    needs: build
+    # Trusted publishing: no token, no secret - PyPI verifies this workflow's
+    # OIDC identity instead. Set the repository variable PYPI_ENABLED=true once
+    # the pending publisher exists on pypi.org; see docs/11-releasing.md.
+    if: github.ref_type == 'tag' && vars.PYPI_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/aggrade
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Prove it landed
+        run: |
+          set -euo pipefail
+          version="${{ needs.build.outputs.version }}"
+          for _ in $(seq 1 12); do
+            if curl -fsS "https://pypi.org/pypi/aggrade/${version}/json" >/dev/null; then
+              echo "aggrade ${version} is on PyPI"
+              curl -fsS "https://pypi.org/pypi/aggrade/${version}/json" \
+                | python -c 'import json,sys; d=json.load(sys.stdin); print("\n".join("  "+u["filename"] for u in d["urls"]))'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::PyPI does not list aggrade ${version} yet"
+          exit 1

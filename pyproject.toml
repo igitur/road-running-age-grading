@@ -1,27 +1,55 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "aggrade"
-version = "2025.1"
+dynamic = ["version"]
 description = "Road-running age grading on the USATF MLDR 2025 tables"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
-keywords = ["running", "age-grading", "usatf", "mldr", "road-running"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Francois Botha", email = "igitur@gmail.com" }]
+keywords = ["running", "age-grading", "usatf", "mldr", "road-running", "athletics"]
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: End Users/Desktop",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Intended Audience :: Other Audience",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Games/Entertainment",
+  "Topic :: Scientific/Engineering :: Mathematics",
 ]
-# The library itself is stdlib-only. The tools need more; see requirements-tools.txt.
+
+# The library itself is stdlib-only: no runtime dependencies, ever.
+dependencies = []
 
 [project.scripts]
 aggrade = "aggrade.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/igitur/road-running-age-grading"
+Documentation = "https://github.com/igitur/road-running-age-grading/blob/main/docs/index.md"
+Source = "https://github.com/igitur/road-running-age-grading"
+Changelog = "https://github.com/igitur/road-running-age-grading/releases"
+"Published calculator" = "https://www.howardgrubb.co.uk/athletics/mldrroad25.html"
+
 [tool.setuptools]
 packages = ["aggrade"]
 
-# The tables live in ../data/ and are read from there (aggrade.core.DEFAULT_DATA).
-# This package is meant to be installed in editable/source mode, not as a wheel.
+# The tables ship inside the wheel: aggrade/core.py prefers the packaged copy and
+# only falls back to ../data/ when running from a source checkout. Keep the two
+# byte-identical with `make pkgdata` (checked by `make check`).
+[tool.setuptools.package-data]
+aggrade = ["data/*.json"]
+
+# The version comes from the git tag, so `git tag v0.0.2 && git push --tags` is the
+# whole release procedure. Building outside a git checkout needs PKG-INFO (sdists
+# carry it) or SETUPTOOLS_SCM_PRETEND_VERSION.
+[tool.setuptools_scm]

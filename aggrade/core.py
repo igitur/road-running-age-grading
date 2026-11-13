@@ -19,7 +19,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "mldr_road.json"
+def _default_data() -> Path:
+    """Where the tables live.
+
+    An installed package carries its own copy (aggrade/data/mldr_road.json); a
+    source checkout keeps them in the repo's data/ directory, derived from the
+    published calculator page by tools/extract_tables.py. The packaged copy wins
+    so a wheel never reads outside itself.
+    """
+    packaged = Path(__file__).resolve().parent / "data" / "mldr_road.json"
+    if packaged.exists():
+        return packaged
+    return Path(__file__).resolve().parent.parent / "data" / "mldr_road.json"
+
+
+DEFAULT_DATA = _default_data()
 
 #: Key ("calibration") distances: the only ones actually fitted. Everything
 #: else in the published table is logarithmically interpolated from these.
@@ -240,7 +254,20 @@ def load_tables(path: str | Path = DEFAULT_DATA) -> dict[str, Tables]:
     return out
 
 
-def table(year: int = 2025, sex: str = "M", authority: str = "USATF MLDR",
+def table(year: int = 2025, sex: str = "M", authority: str | None = None,
           path: str | Path = DEFAULT_DATA) -> Tables:
-    """Convenience accessor, e.g. table(2025, 'F')."""
-    return load_tables(path)[f"{authority} {year} {sex.upper()}"]
+    """Convenience accessor: table(2025, "F"), table(2010, "M").
+
+    `authority` defaults to whichever one published that year - USATF MLDR for
+    2020 and 2025, WMA for 2010 and 2015 - so a caller needs only the year.
+    """
+    tables = load_tables(path)
+    if authority is not None:
+        return tables[f"{authority} {year} {sex.upper()}"]
+    suffix = f" {year} {sex.upper()}"
+    for key, tbl in tables.items():
+        if key.endswith(suffix):
+            return tbl
+    raise OutOfRange(
+        f"no {sex.upper()} table for {year}; known editions: "
+        f"{sorted({k.rsplit(' ', 2)[1] for k in tables})}")

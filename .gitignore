@@ -18,6 +18,10 @@ notes/
 # editable-install metadata
 *.egg-info/
 
+# build outputs (`make dist`); releases carry them, git does not
+dist/
+build/
+
 # --- Excel add-in build artefacts (xll/) -----------------------------------
 xll/*.o
 xll/*.xll
