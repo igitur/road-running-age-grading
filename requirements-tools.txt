@@ -4,7 +4,7 @@
 #   uv venv --python 3.12 .venv
 #   uv pip install --python .venv/bin/python -r requirements-tools.txt
 
-openpyxl>=3.1      # reading the published workbooks (verify.py, reproduce_curve.py)
+openpyxl>=3.1.5      # reading the published workbooks (verify.py, reproduce_curve.py)
 oletools>=0.60     # extracting the VBA from MLDRRoadFactors2025.xlsm
 pypdf>=5.0         # reading the upstream methodology PDFs (notes/ dumps)
 
