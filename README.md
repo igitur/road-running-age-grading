@@ -34,6 +34,7 @@ age grade          106.30%      # above 100% = better than the age standard
 | Write your own implementation | [docs/07-implementation.md](docs/07-implementation.md) |
 | Check our claims | [docs/08-validation.md](docs/08-validation.md) |
 | Know the revision history / what 2026 needs | [docs/09-history.md](docs/09-history.md) |
+| **Grade a whole club in Excel** | [docs/10-excel-addin.md](docs/10-excel-addin.md) |
 
 Full index: [docs/index.md](docs/index.md).
 
@@ -50,6 +51,20 @@ print(format_time(g.age_graded_s))         # 38:32.6
 
 No dependencies outside the standard library for the library itself
 (`openpyxl` is only needed by the table-extraction and verification tools).
+
+## In Excel
+
+`xll/xll_age_grading.xll` is a native add-in for grading a whole squad at once:
+
+```excel
+=AG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)     180 age grades, spilled
+=AG.BLOCK(B2:B181, C2:C181, D2:D181, E2:E181)     factor, standards, graded time, percent
+```
+
+Four editions are compiled in (2025/2020/2015/2010), the fifth argument selects
+one or names a custom `<name>.csv` table, and a range passed there is used as an
+ad-hoc table. Build and install: [xll/README.md](xll/README.md); design notes:
+[docs/10-excel-addin.md](docs/10-excel-addin.md).
 
 ## Getting started
 
@@ -76,6 +91,7 @@ tools/js_oracle.js         run the *published calculator's own JS* under Node
 tools/verify.py            three-way validation harness (A/B/C)
 tools/reproduce_curve.py   rebuild each factor curve from its 10 fitted parameters
 tools/render_wiki.py       docs/*.md -> wiki/*.html (no JS, no CDN)
+xll/                       native Excel add-in: columns in, age grades out
 docs/                      the documentation set (Markdown; source of truth)
 page.html                  archived copy of the calculator page we read
 MLDRRoadFactors2025.xlsm   archived copy of the official factors workbook (VBA)

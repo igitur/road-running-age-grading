@@ -17,3 +17,13 @@ notes/
 
 # editable-install metadata
 *.egg-info/
+
+# --- Excel add-in build artefacts (xll/) -----------------------------------
+xll/*.o
+xll/*.xll
+xll/xll_age_grading_test
+xll_test_tmp/
+# case-fixing header symlinks, created by `make -C xll shim`
+xll/shim/
+# The generated sources ARE committed on purpose (a Windows/MSVC user must not
+# need Python): xll/src/ag_tables_generated.h and xll/test/expected.h.

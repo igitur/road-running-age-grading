@@ -1,0 +1,28 @@
+; xll_age_grading.def — exports for the age-grading add-in.
+;
+; Excel needs the xlAuto* entry points plus XLCallVer (which the library does
+; not define). The xll_ag_* symbols are what Excel resolves from the procedure
+; names passed to xlfRegister: the library strips the leading '_' of
+; "_xll_ag_grade" before registering, so the exported name is "xll_ag_grade".
+; On x64 there is no __stdcall name decoration, so these are plain names.
+LIBRARY xll_age_grading
+EXPORTS
+    XLCallVer
+    xlAutoOpen
+    xlAutoClose
+    xlAutoAdd
+    xlAutoRemove
+    xlAutoFree
+    xlAutoFree12
+    xll_ag_grade
+    xll_ag_gradedtime
+    xll_ag_factor
+    xll_ag_standard
+    xll_ag_timeforpct
+    xll_ag_block
+    xll_ag_tables
+    xll_ag_tableinfo
+    xll_ag_cacheinfo
+    xll_ag_cacheclear
+    xll_ag_lasterror
+    xll_ag_version

@@ -283,6 +283,10 @@ def build(check_only: bool = False) -> int:
         for target, anchor in re.findall(r"\(([\w./-]+\.md)(?:#([\w-]+))?\)", text):
             stem = Path(target).stem
             if stem not in rendered:
+                # A link out of docs/ (e.g. ../xll/README.md): only the file can
+                # be checked, not its anchors, because it is not part of the wiki.
+                if (path.parent / target).exists():
+                    continue
                 print(f"  BROKEN PAGE  {path.name} -> {target}")
                 problems += 1
                 continue

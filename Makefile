@@ -4,7 +4,7 @@
 PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 UPSTREAM := https://github.com/AlanLyttonJones/Age-Grade-Tables.git
 
-.PHONY: help all setup fetch unpack data verify curve wiki check check-links clean
+.PHONY: help all setup fetch unpack data verify curve wiki check check-links xll-test clean
 
 help:
 	@echo "setup    create .venv and install tool dependencies"
@@ -16,6 +16,7 @@ help:
 	@echo "wiki     render docs/*.md -> wiki/*.html"
 	@echo "check    verify + curve + wiki link check   <-- the CI target"
 	@echo "check-links  verify every docs/ cross-page link and anchor"
+	@echo "xll-test verify the Excel add-in core (needs g++ only)"
 	@echo "all      fetch + unpack + data + verify + curve + wiki"
 
 all: fetch unpack data verify curve wiki
@@ -54,10 +55,18 @@ wiki:
 check-links:
 	$(PY) tools/render_wiki.py --check
 
+# The add-in's portable core and test suite. Building the .xll itself needs
+# mingw-w64 and the patched xll library; see xll/README.md.
+xll-test:
+	$(MAKE) -C xll test
+
 check:
 	$(PY) tools/verify.py --all && \
 	$(PY) tools/reproduce_curve.py && \
-	$(PY) tools/render_wiki.py --check
+	$(PY) tools/render_wiki.py --check && \
+	$(PY) xll/tools/gen_tables.py --check && \
+	$(PY) xll/tools/gen_expectations.py --check && \
+	$(MAKE) -C xll test
 
 clean:
 	rm -rf wiki raw

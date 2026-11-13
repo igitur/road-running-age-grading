@@ -49,3 +49,14 @@ jobs:
 
       - name: Check documentation links
         run: make check-links
+
+      # The Excel add-in's portable core: table lookup, vector handling, both
+      # ad hoc table layouts, caching. Building the .xll itself needs mingw-w64
+      # and the mingw-patched xll library, so that stays a local step.
+      - name: Excel add-in — generated files up to date
+        run: |
+          python3 xll/tools/gen_tables.py --check
+          python3 xll/tools/gen_expectations.py --check
+
+      - name: Excel add-in — core test suite
+        run: make xll-test
