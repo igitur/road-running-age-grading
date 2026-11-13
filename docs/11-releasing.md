@@ -156,3 +156,13 @@ $ make pkgdata    # copy data/mldr_road.json -> brrag/data/mldr_road.json
 table revision cannot reach a release with only half of the update applied.
 `brrag.core.DEFAULT_DATA` prefers the packaged copy and only falls back to
 `../data/` when running from a checkout.
+
+## The PyPI page has its own README
+
+`pyproject.toml` points `readme` at `README.pypi.md`, not `README.md`. The two
+audiences are different: someone on PyPI has just run `pip install brrag` and
+wants the API and the CLI, while the repository front door also has to explain the
+workbook and the Excel add-in. `tools/wheel_smoke.py` asserts the long
+description is markdown, says `pip install brrag`, and is not the repository
+README, so a careless `readme =` edit fails the release rather than the landing
+page.

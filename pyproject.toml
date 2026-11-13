@@ -6,7 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "brrag"
 dynamic = ["version"]
 description = "BRRAG - Botha's Road Running Age Grading on the USATF MLDR 2025 tables"
-readme = "README.md"
+# PyPI gets its own page: this is a Python package, so the workbook and the
+# Excel add-in are a link, not the subject. The repository README stays the
+# front door for the whole project.
+readme = "README.pypi.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]

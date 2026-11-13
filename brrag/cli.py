@@ -80,7 +80,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--distance", "-d", help="distance: 10k, 10 km, 6.2 miles, half marathon, "
                          "marathon, or a bare number of km")
     ap.add_argument("--event", "-e", help="exact table event name, e.g. 10kmRoad")
-    ap.add_argument("--year", type=int, default=2025, help="table year (default 2025)")
+    ap.add_argument("--year", type=int, default=2025,
+                    help="table year: 2025 or 2020 (USATF MLDR), 2015 or 2010 (WMA); "
+                         "default 2025")
     ap.add_argument("--file", type=Path, default=DEFAULT_DATA, help="tables JSON")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("--list-events", action="store_true", help="list table events")
@@ -93,10 +95,13 @@ def main(argv: list[str] | None = None) -> int:
 
     tables = load_tables(args.file)
     sex = args.sex.upper()
-    key = f"USATF MLDR {args.year} {sex}"
-    if key not in tables:
-        raise SystemExit(f"no table {key!r}; have: {sorted(tables)}")
-    t = tables[key]
+    # The authority follows the year - USATF MLDR for 2020 and 2025, WMA for
+    # 2010 and 2015 - so --year 2015 must not go looking for "USATF MLDR 2015".
+    matches = [k for k in tables if k.endswith(f" {args.year} {sex}")]
+    if not matches:
+        editions = sorted({k.split(" ")[-2] for k in tables})
+        raise SystemExit(f"no {sex} table for {args.year}; editions: {', '.join(editions)}")
+    t = tables[matches[0]]
 
     if args.list_events:
         rows = [{"event": e.name, "distance_km": e.distance_km,

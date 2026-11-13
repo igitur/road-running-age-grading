@@ -87,6 +87,22 @@ def main(argv: list[str]) -> int:
         check("console script percent (fraction)", round(payload["percent"], 4), 0.6849, 1e-9)
         check("console script display", round(payload["percent_display"], 2), 68.49, 1e-9)
 
+    # ---- the PyPI page is not the repository README -------------------------
+    # PyPI renders the long description as the landing page. A reader there wants
+    # `pip install brrag`, the CLI and the API - not a workbook they cannot open.
+    from importlib.metadata import metadata
+    md = metadata("brrag")
+    body = md.get_payload() or ""
+    check("long description is markdown",
+          (md.get("Description-Content-Type") or "").startswith("text/markdown"), True, 0)
+    check("long description says pip install brrag", "pip install brrag" in body, True, 0)
+    check("long description is not the repo README", "RRAG.GRADE(" in body, False, 0)
+    if len(body) < 2000:
+        failures.append("long description")
+        print(f"FAIL long description is only {len(body)} chars")
+    else:
+        print(f"ok   long description: {len(body):,} chars of PyPI readme")
+
     if failures:
         print(f"\n{len(failures)} failure(s): {', '.join(failures)}")
         return 1
