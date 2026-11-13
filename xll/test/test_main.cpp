@@ -260,8 +260,8 @@ ag::Matrix matrix_table() {
     // a 3-age, 2-distance club table, both sexes, factors chosen to be easy
     return mat({
         {"Sex", "Event", "OpenStd", "30", "40", "50"},
-        {"M", "10kmRoad", "26:24", "1", "0.9", "0.8"},
-        {"F", "10kmRoad", "28:46", "1", "0.85", "0.75"},
+        {"M", "10 k", "26:24", "1", "0.9", "0.8"},
+        {"F", "10 k", "28:46", "1", "0.85", "0.75"},
         {"M", "Marathon", "2:00:35", "1", "0.95", "0.9"},
         {"F", "Marathon", "2:09:56", "1", "0.9", "0.85"},
     });
@@ -298,7 +298,7 @@ void test_adhoc() {
     // into 65 and lose five years of the curve.
     const ag::Matrix sparse = mat({
         {"Sex", "Event", "OpenStd", "45", "50", "55", "60", "65"},
-        {"M", "10kmRoad", "26:24", "0.9261", "0.8886", "0.8511", "0.8136", "0.7761"},
+        {"M", "10 k", "26:24", "0.9261", "0.8886", "0.8511", "0.8136", "0.7761"},
     });
     const ag::Value sp = ag::Value::of_matrix(sparse);
     const double want61 = 100.0 * (1584.0 / (0.8136 + 0.2 * (0.7761 - 0.8136))) / 2400.0;
@@ -324,12 +324,12 @@ void test_adhoc() {
     // long format produces the same numbers as the matrix format
     const ag::Matrix longform = mat({
         {"Sex", "Event", "Age", "Factor", "OpenStd"},
-        {"M", "10kmRoad", "30", "1", "26:24"},
-        {"M", "10kmRoad", "40", "0.9", "26:24"},
-        {"M", "10kmRoad", "50", "0.8", "26:24"},
-        {"F", "10kmRoad", "30", "1", "28:46"},
-        {"F", "10kmRoad", "40", "0.85", "28:46"},
-        {"F", "10kmRoad", "50", "0.75", "28:46"},
+        {"M", "10 k", "30", "1", "26:24"},
+        {"M", "10 k", "40", "0.9", "26:24"},
+        {"M", "10 k", "50", "0.8", "26:24"},
+        {"F", "10 k", "30", "1", "28:46"},
+        {"F", "10 k", "40", "0.85", "28:46"},
+        {"F", "10 k", "50", "0.75", "28:46"},
         {"M", "Marathon", "30", "1", "2:00:35"},
         {"M", "Marathon", "40", "0.95", "2:00:35"},
         {"M", "Marathon", "50", "0.9", "2:00:35"},
@@ -347,10 +347,10 @@ void test_adhoc() {
     // male 26:24 standard, 7 percentage points too high).
     const ag::Matrix longsex = mat({
         {"Sex", "Event", "Age", "Factor", "OpenStd"},
-        {"M", "10kmRoad", "30", "1", "26:24"},
-        {"M", "10kmRoad", "50", "0.8", "26:24"},
-        {"F", "10kmRoad", "30", "1", "28:46"},
-        {"F", "10kmRoad", "50", "0.8", "28:46"},
+        {"M", "10 k", "30", "1", "26:24"},
+        {"M", "10 k", "50", "0.8", "26:24"},
+        {"F", "10 k", "30", "1", "28:46"},
+        {"F", "10 k", "50", "0.8", "28:46"},
     });
     const ag::Value lsx = ag::Value::of_matrix(longsex);
     NEAR(ag::grade(txt("M"), num(30), num(10.0), num(2400), lsx).v[0],
@@ -360,29 +360,33 @@ void test_adhoc() {
     NEAR(ag::grade(txt("F"), num(50), num(10.0), num(2400), lsx).v[0],
          100.0 * (1726.0 / 0.8) / 2400.0, 1e-3);
 
-    // Which distance strings are accepted. Every published event name must work
-    // as written (that is what AG.TABLES/AG.TABLEINFO report), the obvious
-    // aliases must work, and junk must be refused rather than guessed at.
+    // The distance grammar: <number><unit>, or one of the two named races.
+    // Comparison ignores case, all whitespace and hyphens.
     {
         static const char* accepted[] = {
-            "1MileRoad", "5kmRoad", "6kmRoad", "4MileRoad", "8kmRoad", "5MileRoad",
-            "10kmRoad", "7Mile", "12km", "15km", "10Mile", "20km", "Half.Mar",
-            "25km", "30km", "Marathon", "50km", "50Mile", "100km", "150km",
-            "100Mile", "200km",
-            "10k", "10km", "10KM", "10 km", " 10K ", "10k road", "10kRoad",
-            "5 Mile", "5mile", "5mi", "Half", "half marathon", "HALF-MARATHON",
-            "hm", "21.0975", "mar", "42.195", "mile", "1 mile", "30K", "100 mile",
-            "10",          // a numeric string is kilometres, same as the number 10
+            "10k", "10 k", "10K", "10 km", "10 KM", "10\tkm", "10\nk",
+            "10 kilometer", "10 kilometres", "10 KILOMETRE", "10kilometers",
+            "10-km", "10 - kilo-metres", " 10 kilometres ",
+            "6.2 m", "6.2 mile", "6.2 miles", "6.2M", "1 mile", "5 miles",
+            "half marathon", "Half-Marathon", "HALF MARATHON", "halfmarathon",
+            "half\tmarathon", "marathon", "Marathon", "  marathon  ",
+            "10",            // a numeric string is kilometres, like the number 10
+            "0.5 k",
         };
         static const char* refused[] = {
-            "bogus", "", "500km", "1.5mi", "ten k",
+            "bogus", "", "ten k", "10kms", "10 kmroad", "10kmroads", "mi",
+            "half", "hm", "mar", "mile", "1.5mi", "k", "10 mi", "500km",
+            "half marathon 10k", "10,5 km",
         };
         for (const char* d : accepted) {
             const ag::Out o = ag::factor_of(txt("M"), num(40), txt(d), txt("2025"));
             const double f = o.v.empty() ? std::nan("") : o.v[0];
-            if (!(std::isfinite(f) && f > 0.0 && f <= 1.0)) {
+            const bool ok = std::isfinite(f) && f > 0.0 && f <= 1.0;
+            // distances outside 1 mile .. 200 km are refused for a different
+            // reason, so only require parsing to succeed where in range
+            if (!ok && std::string(d) != "0.5 k") {
                 ++g_checks; ++g_failures;
-                std::printf("  FAIL distance %s should be accepted\n", d);
+                std::printf("  FAIL distance \"%s\" should be accepted\n", d);
             } else {
                 ++g_checks;
             }
@@ -397,16 +401,20 @@ void test_adhoc() {
                 ++g_checks;
             }
         }
-        // the Road suffix must not change the answer
-        NEAR(ag::factor_of(txt("M"), num(40), txt("10k road"), txt("2025")).v[0],
-             ag::factor_of(txt("M"), num(40), txt("10kmRoad"), txt("2025")).v[0], 1e-12);
+        // spelling never changes the answer
+        NEAR(ag::factor_of(txt("M"), num(40), txt("10 KILOMETRES"), txt("2025")).v[0],
+             ag::factor_of(txt("M"), num(40), txt("10k"), txt("2025")).v[0], 1e-12);
+        NEAR(ag::factor_of(txt("M"), num(40), txt("6.2 miles"), txt("2025")).v[0],
+             ag::factor_of(txt("M"), num(40), num(6.2 * 1.609344), txt("2025")).v[0], 1e-12);
+        NEAR(ag::factor_of(txt("M"), num(40), txt("Half-Marathon"), txt("2025")).v[0],
+             ag::factor_of(txt("M"), num(40), num(21.0975), txt("2025")).v[0], 1e-12);
     }
 
     // OpenStd may be omitted when the distance is a published one
     const ag::Matrix nostd = mat({
         {"Sex", "Event", "30", "40", "50"},
-        {"M", "10kmRoad", "1", "0.9", "0.8"},
-        {"F", "10kmRoad", "1", "0.85", "0.75"},
+        {"M", "10 k", "1", "0.9", "0.8"},
+        {"F", "10 k", "1", "0.85", "0.75"},
     });
     const ag::Out ns = ag::grade(txt("M"), num(40), num(10.0), num(2400),
                                  ag::Value::of_matrix(nostd));
@@ -424,7 +432,7 @@ void test_adhoc() {
     ag::set_last_error("");
     const ag::Matrix over = mat({
         {"Sex", "Event", "OpenStd", "30", "40"},
-        {"M", "10kmRoad", "26:24", "1.5", "0.9"},
+        {"M", "10 k", "26:24", "1.5", "0.9"},
     });
     const ag::Out o = ag::grade(txt("M"), num(40), num(10.0), num(2400),
                                 ag::Value::of_matrix(over));
@@ -484,8 +492,8 @@ void test_sidecar_csv() {
         std::FILE* f = std::fopen(path.c_str(), "wb");
         if (!f) { OK(false); return; }
         std::fputs("Sex,Event,OpenStd,30,40,50\n", f);
-        std::fputs("M,10kmRoad,26:24,1,0.9,0.8\n", f);
-        std::fputs("F,10kmRoad,28:46,1,0.85,0.75\n", f);
+        std::fputs("M,10 k,26:24,1,0.9,0.8\n", f);
+        std::fputs("F,10 k,28:46,1,0.85,0.75\n", f);
         std::fclose(f);
     }
     ag::Registry::instance().clear();
@@ -503,8 +511,8 @@ void test_sidecar_csv() {
         std::FILE* g = std::fopen(vets.c_str(), "wb");
         if (!g) { OK(false); return; }
         std::fputs("Sex,Event,OpenStd,45,50,55,60,65,70\n", g);
-        std::fputs("M,10kmRoad,26:24,0.9724,0.933,0.8937,0.8543,0.8149,0.7755\n", g);
-        std::fputs("F,10kmRoad,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176\n", g);
+        std::fputs("M,10 k,26:24,0.9724,0.933,0.8937,0.8543,0.8149,0.7755\n", g);
+        std::fputs("F,10 k,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176\n", g);
         std::fclose(g);
     }
     ag::Registry::instance().clear();
@@ -531,7 +539,7 @@ void test_parsing() {
     std::string ev;
     OK(ag::parse_distance(ag::Cell::string("10k"), km, ev) && std::fabs(km - 10) < 1e-9);
     OK(ag::parse_distance(ag::Cell::string("Half Marathon"), km, ev) && std::fabs(km - 21.0975) < 1e-9);
-    OK(ag::parse_distance(ag::Cell::string("10kmRoad"), km, ev) && std::fabs(km - 10) < 1e-9);
+    OK(ag::parse_distance(ag::Cell::string("10 k"), km, ev) && std::fabs(km - 10) < 1e-9);
     OK(ag::parse_distance(ag::Cell::number(12.5), km, ev) && std::fabs(km - 12.5) < 1e-9);
     OK(!ag::parse_distance(ag::Cell::string("10 miles maybe"), km, ev));
 

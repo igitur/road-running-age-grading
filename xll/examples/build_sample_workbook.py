@@ -23,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from aggrade.cli import parse_distance as label_km        # noqa: E402
 from aggrade.core import load_tables                      # noqa: E402
 from openpyxl import Workbook, load_workbook              # noqa: E402
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # noqa: E402
@@ -114,27 +115,32 @@ def grade(sex: str, age: float, dist_km: float, time_s: float, year: int = 2025)
 # ---------------------------------------------------------------------------
 CUSTOM_AGES = [45, 50, 55, 60, 65]
 CUSTOM_ROWS = [
-    ("M", "10kmRoad", "26:24"),
-    ("F", "10kmRoad", "28:46"),
-    ("M", "Half.Mar", "57:31"),
-    ("F", "Half.Mar", "1:02:52"),
-    ("M", "Marathon", "2:00:35"),
-    ("F", "Marathon", "2:09:56"),
+    ("M", "10 k", "26:24"),
+    ("F", "10 k", "28:46"),
+    ("M", "half marathon", "57:31"),
+    ("F", "half marathon", "1:02:52"),
+    ("M", "marathon", "2:00:35"),
+    ("F", "marathon", "2:09:56"),
 ]
 
 
-def custom_factors(sex: str, event: str) -> list[float]:
-    ev = tbl(sex).event(event)
-    return [ev.factors[tbl(sex).ages.index(a)] for a in CUSTOM_AGES]
+def custom_factors(sex: str, km: float) -> list[float]:
+    """The published factors behind a row of the custom table.
+
+    Looked up by distance, not by name: the workbook writes the table's Event
+    cells in the add-in's grammar ("10 k"), while the Python data API knows the
+    published row labels ("10kmRoad"). Distance is the thing they share.
+    """
+    t = tbl(sex)
+    ev = next(e for e in t.events if abs(e.distance_km - km) < 1e-9)
+    return [ev.factors[t.ages.index(a)] for a in CUSTOM_AGES]
 
 
-KM = {"10kmRoad": 10.0, "Half.Mar": 21.0975, "Marathon": 42.195}
 
-
-def custom_grade(sex: str, event: str, age: float, time_s: float) -> float:
+def custom_grade(sex: str, km: float, age: float, time_s: float) -> float:
     """Grade with the sparse custom table, mimicking ag_core.cpp exactly."""
     ages = CUSTOM_AGES
-    v = custom_factors(sex, event)
+    v = custom_factors(sex, km)
     f = v[0] if age <= ages[0] else v[-1]
     if ages[0] < age < ages[-1]:
         for i in range(1, len(ages)):
@@ -142,7 +148,8 @@ def custom_grade(sex: str, event: str, age: float, time_s: float) -> float:
                 p = (age - ages[i - 1]) / (ages[i] - ages[i - 1])
                 f = v[i - 1] * (1 - p) + v[i] * p
                 break
-    std_clock = next(r[2] for r in CUSTOM_ROWS if r[0] == sex and r[1] == event)
+    std_clock = next(r[2] for r in CUSTOM_ROWS
+                     if r[0] == sex and abs(label_km(r[1]) - km) < 1e-9)
     return 100.0 * (secs(std_clock) / f) / time_s
 
 
@@ -872,7 +879,7 @@ def sheet_custom(wb: Workbook) -> None:
         ws[f"B{row}"].font, ws[f"B{row}"].alignment = F_MONO, LEFT
         c = ws[f"C{row}"]
         c.value, c.number_format = serial(std), TIME_FMT
-        for j, f in enumerate(custom_factors(sex, event)):
+        for j, f in enumerate(custom_factors(sex, label_km(event))):
             c = ws.cell(row=row, column=4 + j, value=f)
             c.number_format = FAC_FMT
             c.alignment = CENTER
@@ -894,12 +901,12 @@ def sheet_custom(wb: Workbook) -> None:
                            "built-in 2025 %", "difference (pp)", "note"])
     q0 = r + 2
     queries = [
-        ("M", "10kmRoad", 45, "40:00", "Age 45 is one of the supplied ages, so this must equal "
-                                       "the built-in 2025 answer exactly."),
-        ("M", "10kmRoad", 52, "40:00", "Age 52 is interpolated between the 50 and 55 factors — "
-                                       "the add-in fills sparse ages linearly."),
-        ("F", "Half.Mar", 61, "1:55:00", "Any distance row and any sex: rows are independent."),
-        ("M", "Marathon", 70, "3:45:00", "Age 70 is above the last supplied age (65), so the "
+        ("M", "10 k", 45, "40:00", "Age 45 is one of the supplied ages, so this must equal "
+                                   "the built-in 2025 answer exactly."),
+        ("M", "10 km", 52, "40:00", "Spelled differently, and interpolated: 52 sits between the "
+                                    "50 and 55 factors, which the add-in fills linearly."),
+        ("F", "half marathon", 61, "1:55:00", "Any distance row and any sex: rows are independent."),
+        ("M", "marathon", 70, "3:45:00", "Age 70 is above the last supplied age (65), so the "
                                          "65 factor is clamped — the table is not extrapolated."),
     ]
     for i, (sex, event, age, t, why) in enumerate(queries):
@@ -911,11 +918,11 @@ def sheet_custom(wb: Workbook) -> None:
             c.font = F_MONO if col == "B" else F_BODY
             c.alignment = CENTER if col != "B" else LEFT
         live(ws, f"E{row}", f"=AG.GRADE(A{row},C{row},B{row},D{row},{rng})", PCT_FMT)
-        expected(ws, f"F{row}", round(custom_grade(sex, event, age, secs(t)), 4), PCT_FMT)
+        expected(ws, f"F{row}", round(custom_grade(sex, label_km(event), age, secs(t)), 4), PCT_FMT)
         c = ws[f"G{row}"]
         c.value = f'=IF(ABS(E{row}-F{row})<0.01,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
-        built_in = grade(sex, age, KM[event], secs(t)).percent
+        built_in = grade(sex, age, label_km(event), secs(t)).percent
         expected(ws, f"H{row}", round(built_in, 4), PCT_FMT)
         c = ws[f"I{row}"]
         c.value = f"=E{row}-H{row}"
@@ -933,7 +940,7 @@ def sheet_custom(wb: Workbook) -> None:
     l0 = r + 2
     row = l0
     for sex, event, std in CUSTOM_ROWS:
-        for age, f in zip(CUSTOM_AGES, custom_factors(sex, event)):
+        for age, f in zip(CUSTOM_AGES, custom_factors(sex, label_km(event))):
             ws[f"A{row}"].value = sex
             ws[f"B{row}"].value = event
             ws[f"C{row}"].value = age
@@ -954,7 +961,7 @@ def sheet_custom(wb: Workbook) -> None:
     header_row(ws, r, ["Sex", "Event", "Age", "Time", "live % (long)", "expected %", "check",
                        "same as matrix?", "note"])
     row = r + 1
-    for sex, event, age, t in (("M", "10kmRoad", 50, "40:00"), ("F", "Marathon", 58, "3:30:00")):
+    for sex, event, age, t in (("M", "10 k", 50, "40:00"), ("F", "marathon", 58, "3:30:00")):
         ws[f"A{row}"].value = sex
         ws[f"B{row}"].value = event
         ws[f"C{row}"].value = age
@@ -965,7 +972,7 @@ def sheet_custom(wb: Workbook) -> None:
             ws[f"{col}{row}"].fill, ws[f"{col}{row}"].border = FILL_IN, BOX
             ws[f"{col}{row}"].font, ws[f"{col}{row}"].alignment = F_BODY, CENTER
         live(ws, f"E{row}", f"=AG.GRADE(A{row},C{row},B{row},D{row},{long_rng})", PCT_FMT)
-        expected(ws, f"F{row}", round(custom_grade(sex, event, age, secs(t)), 4), PCT_FMT)
+        expected(ws, f"F{row}", round(custom_grade(sex, label_km(event), age, secs(t)), 4), PCT_FMT)
         c = ws[f"G{row}"]
         c.value = f'=IF(ABS(E{row}-F{row})<0.01,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
@@ -1076,7 +1083,7 @@ def sheet_reference(wb: Workbook) -> None:
     r = title(ws, "Reference", "The distances the tables cover, and the rules every call follows.")
 
     subhead(ws, 4, "The 22 published distances")
-    header_row(ws, 5, ["Event name", "km", "miles", "Notes"])
+    header_row(ws, 5, ["Published row", "km", "miles", "Notes"])
     t = tbl("M")
     for i, ev in enumerate(t.events):
         row = 6 + i
@@ -1095,11 +1102,11 @@ def sheet_reference(wb: Workbook) -> None:
             ws[f"{col}{row}"].border = BOX
             if col != "A":
                 ws[f"{col}{row}"].font = F_BODY
-        ev_names = {"1MileRoad": "Any distance may also be given in km and is interpolated "
-                                 "between the two nearest rows.",
-                    "5kmRoad": "The most-used row in club racing.",
-                    "Half.Mar": "21.0975 km exactly; \"half\", \"hm\" and \"half marathon\" all work.",
-                    "Marathon": "42.195 km; \"mar\" and \"marathon\" work.",
+        ev_names = {"1MileRoad": "Type it as 1 mile, 1 m or 1.609344 km. Nothing below this "
+                                 "can be graded.",
+                    "5kmRoad": "The most-used row in club racing: type 5k or 5 kilometres.",
+                    "Half.Mar": "21.0975 km: type half marathon, half-marathon or 21.0975.",
+                    "Marathon": "42.195 km: type marathon.",
                     "200kmRoad": "The top of the published range — above this the call fails."}
         if ev.name in ev_names:
             ws[f"D{row}"].value = ev_names[ev.name]
@@ -1112,8 +1119,10 @@ def sheet_reference(wb: Workbook) -> None:
                 'rather than guessed at.'),
         ("age", "Years on race day, 1-120. Below 5 clamps to 5, above 99 clamps to 100; "
                 "fractional ages interpolate."),
-        ("distance", "km as a number (10, 12.5) or an event name (\"10k\", \"10kmRoad\", \"half\", "
-                     "\"5 Mile\"). Out of range 1.609344-200 km fails."),
+        ("distance", "A number with a unit — 10k, 10 km, 10 kilometre(s), 6.2 miles, 6.2 m — "
+                     "or half marathon / marathon, or a bare number of km (10, 12.5). Case, "
+                     "spaces and hyphens are ignored: \"10 K M\" and \"HALF-MARATHON\" work. "
+                     "Out of range 1.609344-200 km fails."),
         ("time", "Excel time value, text (\"40:00\"), or seconds (2400). Numbers below 1 are time "
                  "serials; 1 or more are seconds."),
         ("percent", "The grade you want, e.g. 75 for 75%."),

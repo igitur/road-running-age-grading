@@ -12,6 +12,7 @@ Examples
 from __future__ import annotations
 
 import argparse
+import re
 import json
 import sys
 from pathlib import Path
@@ -21,37 +22,45 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from aggrade.core import DEFAULT_DATA, OutOfRange, load_tables  # noqa: E402
 from aggrade.ui import format_time, parse_time, ui_percent  # noqa: E402
 
-DISTANCE_ALIASES = {
-    "mile": 1.609344, "1mile": 1.609344, "1mi": 1.609344,
-    "5k": 5.0, "6k": 6.0, "4mi": 6.437376, "4mile": 6.437376,
-    "8k": 8.0, "5mi": 8.04672, "5mile": 8.04672, "10k": 10.0,
-    "7mi": 11.265408, "7mile": 11.265408, "12k": 12.0, "15k": 15.0,
-    "10mi": 16.09344, "10mile": 16.09344, "20k": 20.0,
-    "half": 21.0975, "hm": 21.0975, "halfmarathon": 21.0975,
-    "half.mar": 21.0975, "half-marathon": 21.0975,
-    "25k": 25.0, "30k": 30.0,
-    "marathon": 42.195, "mar": 42.195,
-    "50k": 50.0, "50mi": 80.4672, "50mile": 80.4672,
-    "100k": 100.0, "150k": 150.0, "100mi": 160.9344, "100mile": 160.9344,
-    "200k": 200.0,
-}
+MILE_KM = 1.609344
+_KM_UNITS = {"k", "km", "kilometer", "kilometers", "kilometre", "kilometres"}
+_MILE_UNITS = {"m", "mile", "miles"}
+_DISTANCE_RE = re.compile(r"^(\d+(?:\.\d+)?)([a-z]*)$")
 
 
 def parse_distance(text: str) -> float:
-    key = text.strip().lower().replace("_", "").replace(" ", "")
-    # the tables name events with a "Road" suffix; accept it or leave it off,
-    # matching what the Excel add-in does
-    if key.endswith("road") and len(key) > 4:
-        key = key[:-4]
-    if key in DISTANCE_ALIASES:
-        return DISTANCE_ALIASES[key]
-    try:
-        return float(key.removesuffix("km"))
-    except ValueError:
+    """The distance grammar, the same one the Excel add-in uses.
+
+    <number> followed by k, km, kilometer(s), kilometre(s)   -> kilometres
+    <number> followed by m, mile, miles                      -> miles
+    half marathon, marathon                                  -> 21.0975, 42.195 km
+    a bare number is kilometres
+
+    Case is ignored, and every space, tab, newline and hyphen is removed before
+    comparison, so "10 K M", "Half-Marathon" and "6.2 miles" all work.
+    """
+    key = "".join(ch for ch in text.lower() if not ch.isspace() and ch not in "-_")
+    if key == "halfmarathon":
+        return 21.0975
+    if key == "marathon":
+        return 42.195
+    m = _DISTANCE_RE.match(key)
+    if not m:
         raise SystemExit(
-            f"unknown distance {text!r}; try 5k, 10k, half, marathon or a number "
-            f"of kilometres"
-        ) from None
+            f"unknown distance {text!r}. Use a number with a unit "
+            f"(10k, 10 km, 10 kilometres, 6.2 miles), half marathon, marathon, "
+            f"or a bare number of kilometres")
+    amount, unit = float(m.group(1)), m.group(2)
+    if amount <= 0:
+        raise SystemExit(f"distance must be positive, got {text!r}")
+    if unit in _KM_UNITS or unit == "":
+        return amount
+    if unit in _MILE_UNITS:
+        return amount * MILE_KM
+    raise SystemExit(
+        f"unknown unit {unit!r} in {text!r}. Use k, km, kilometer(s), "
+        f"kilometre(s), m, mile or miles")
+
 
 
 def main(argv: list[str] | None = None) -> int:

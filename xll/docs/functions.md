@@ -41,27 +41,29 @@ for seconds.
 
 ### Distances
 
+A number with a unit, or one of the two races by name:
+
 | You type | Distance |
 | --- | --- |
-| `10` | 10 km |
-| `"10k"`, `"10km"`, `"10kmRoad"` | 10 km |
-| `"Half Marathon"`, `"half"`, `"hm"` | 21.0975 km |
-| `"Marathon"`, `"mar"` | 42.195 km |
-| `"1 Mile"`, `"mile"` | 1.609344 km |
-| `12.5` | 12.5 km — interpolated between 12 km and 15 km |
-| `"10"` | 10 km — a numeric string is kilometres, like the number |
+| `10k`, `10 km`, `10 kilometer`, `10 kilometers`, `10 kilometre`, `10 kilometres` | 10 km |
+| `6.2 m`, `6.2 mile`, `6.2 miles` | 6.2 miles = 9.9779 km |
+| `half marathon`, `half-marathon` | 21.0975 km |
+| `marathon` | 42.195 km |
+| `12.5`, or the text `"12.5"` | 12.5 km — interpolated between 12 km and 15 km |
 
-The published event names carry a `Road` suffix (`10kmRoad`, `5MileRoad`); it is
-optional, and case, spaces and underscores are ignored, so `10kmRoad`, `10k road`,
-`10KM`, `10 km` and `10k` all mean 10 km. Aliases: `mile`/`1 mile`/`1mi`,
-`half`/`hm`/`half marathon`/`half-marathon`/`Half.Mar`/`21.0975`,
-`marathon`/`mar`/`42.195`, and the `Nk`/`Nkm`/`Nmi`/`Nmile` forms of each
-published distance. Anything else is refused — a misspelt event is not snapped to
-its nearest neighbour.
+Comparison ignores case and discards **every** space, tab, newline and hyphen
+first, so `10 K M`, `HALF-MARATHON` and `10\tkilometres` all mean the same thing.
+
+`m` after a number means **miles**, not metres: the tables are kilometres, and a
+road-race distance below one mile has no grade anyway. `10 m` is 16.09 km.
 
 Off-grid distances interpolate linearly between the two nearest published rows,
-which is what the published calculator does. Below 1 mile and above 200 km there
-is no answer: the row comes back `#NUM!`.
+which is what the published calculator does. Below 1 mile (1.609344 km) and above
+200 km there is no answer: the row comes back `#NUM!`.
+
+Anything else is refused — `10kmRoad`, `half`, `hm`, `10kms`, `ten k`. A
+misspelt distance that is quietly snapped to a neighbour produces a plausible,
+wrong grade, which is worse than an error.
 
 ### Errors
 

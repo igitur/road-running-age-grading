@@ -32,12 +32,18 @@ std::string trim(const std::string& s) {
 }
 
 // Remove spaces and underscores for label/number comparison: "10 Mile" -> "10mile".
+// Normalise for comparison: no whitespace of any kind (spaces, tabs, newlines,
+// non-breaking spaces), no hyphens or underscores, lower case. "Half-Marathon",
+// "10 K M" and "10\tkm" then compare as "halfmarathon", "10km", "10km".
 std::string squash(std::string s) {
     std::string o;
     o.reserve(s.size());
     for (char c : s) {
-        if (c == ' ' || c == '_' || c == '\t') continue;
-        o.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        const unsigned char u = static_cast<unsigned char>(c);
+        if (std::isspace(u) || c == '-' || c == '_') continue;
+        if (u == 0xC2 || u == 0xC3) continue;          // UTF-8 lead of NBSP/dashes
+        if (u == 0xA0 || u == 0x96 || u == 0x97) continue;  // NBSP, en/em dash tails
+        o.push_back(static_cast<char>(std::tolower(u)));
     }
     return o;
 }
@@ -84,37 +90,8 @@ bool parse_clock_text(const std::string& raw, double& seconds) {
 // ---------------------------------------------------------------------------
 // distance aliases, mirroring the Python CLI so the two agree
 // ---------------------------------------------------------------------------
-struct Alias {
-    const char* key;
-    double km;
-};
-
-constexpr Alias kAliases[] = {
-    {"mile", 1.609344},   {"1mile", 1.609344},   {"1mi", 1.609344},
-    {"1mileroad", 1.609344},
-    {"5k", 5.0},          {"5km", 5.0},          {"5kmroad", 5.0},
-    {"6k", 6.0},          {"6km", 6.0},          {"6kmroad", 6.0},
-    {"4mi", 6.437376},    {"4mile", 6.437376},   {"4mileroad", 6.437376},
-    {"8k", 8.0},          {"8km", 8.0},          {"8kmroad", 8.0},
-    {"5mi", 8.04672},     {"5mile", 8.04672},    {"5mileroad", 8.04672},
-    {"10k", 10.0},        {"10km", 10.0},        {"10kmroad", 10.0},
-    {"7mi", 11.265408},   {"7mile", 11.265408},
-    {"12k", 12.0},        {"12km", 12.0},
-    {"15k", 15.0},        {"15km", 15.0},
-    {"10mi", 16.09344},   {"10mile", 16.09344},
-    {"20k", 20.0},        {"20km", 20.0},
-    {"half", 21.0975},    {"hm", 21.0975},       {"halfmarathon", 21.0975},
-    {"half.mar", 21.0975}, {"half-marathon", 21.0975}, {"21.0975", 21.0975},
-    {"25k", 25.0},        {"25km", 25.0},
-    {"30k", 30.0},        {"30km", 30.0},
-    {"marathon", 42.195}, {"mar", 42.195},       {"42.195", 42.195},
-    {"50k", 50.0},        {"50km", 50.0},
-    {"50mi", 80.4672},    {"50mile", 80.4672},
-    {"100k", 100.0},      {"100km", 100.0},
-    {"150k", 150.0},      {"150km", 150.0},
-    {"100mi", 160.9344},  {"100mile", 160.9344},
-    {"200k", 200.0},      {"200km", 200.0},
-};
+// One mile in kilometres; the tables are in km, so miles convert on the way in.
+constexpr double kMileKm = 1.609344;
 
 }  // namespace
 
@@ -188,29 +165,48 @@ bool parse_time(const Cell& c, double& seconds_out, std::string& why) {
     return false;
 }
 
+// Distance grammar. Accepted, after squash() has removed whitespace and hyphens
+// and folded case:
+//
+//   <number>k | <number>km | <number>kilometer(s) | <number>kilometre(s)   km
+//   <number>m | <number>mile | <number>miles                              miles
+//   halfmarathon                                                          21.0975 km
+//   marathon                                                              42.195 km
+//
+// A bare number is kilometres: in a cell that is a number, in text it is the
+// same thing spelled out ("10"). Anything else is refused rather than snapped to
+// a neighbour, because a plausible wrong grade is worse than an error.
 bool parse_distance(const Cell& c, double& km_out, std::string& event_out) {
     event_out.clear();
     if (c.is_num()) {
-        if (c.num <= 0) return false;
+        if (!(c.num > 0)) return false;
         km_out = c.num;
         return true;
     }
     if (!c.is_text()) return false;
     const std::string raw = trim(c.text);
     if (raw.empty()) return false;
-    std::string key = squash(raw);
-    // The tables name their events with a "Road" suffix ("10kmRoad"). Accept it
-    // or leave it off, including the formats the alias table does not spell out
-    // ("10k road", "10KROAD"): strip it and match the bare distance instead.
-    if (key.size() > 4 && key.compare(key.size() - 4, 4, "road") == 0) {
-        key.resize(key.size() - 4);
+    const std::string key = squash(raw);
+    if (key.empty()) return false;
+
+    if (key == "halfmarathon") { km_out = 21.0975; event_out = raw; return true; }
+    if (key == "marathon")     { km_out = 42.195;  event_out = raw; return true; }
+
+    char* end = nullptr;
+    const double n = std::strtod(key.c_str(), &end);
+    if (end == key.c_str() || !(n > 0) || !std::isfinite(n)) return false;
+    const std::string unit = key.substr(static_cast<std::size_t>(end - key.c_str()));
+
+    if (unit.empty()) { km_out = n; return true; }          // "10" == 10 km
+    if (unit == "k" || unit == "km" || unit == "kilometer" || unit == "kilometers" ||
+        unit == "kilometre" || unit == "kilometres") {
+        km_out = n;
+        return true;
     }
-    for (const auto& a : kAliases) {
-        if (key == a.key) { km_out = a.km; event_out = raw; return true; }
+    if (unit == "m" || unit == "mile" || unit == "miles") {  // m = miles here
+        km_out = n * kMileKm;
+        return true;
     }
-    double v = 0;
-    if (parse_double(key, v) && v > 0) { km_out = v; return true; }
-    // "10km" handled above; last resort: strip a trailing "km"/"k"/"mi"
     return false;
 }
 
@@ -236,27 +232,6 @@ std::string normalise_table_name(const Cell& c) {
 // ---------------------------------------------------------------------------
 // events
 // ---------------------------------------------------------------------------
-int find_event(const Table& t, const std::string& name, double km, bool have_km) {
-    if (!name.empty()) {
-        const std::string want = squash(name);
-        for (std::size_t i = 0; i < t.events.size(); ++i) {
-            const std::string have = squash(t.events[i].name);
-            if (have == want) return static_cast<int>(i);
-            // tolerate the "Road" suffix either way
-            std::string a = have, b = want;
-            if (a.size() > 4 && a.compare(a.size() - 4, 4, "road") == 0) a.resize(a.size() - 4);
-            if (b.size() > 4 && b.compare(b.size() - 4, 4, "road") == 0) b.resize(b.size() - 4);
-            if (a == b) return static_cast<int>(i);
-        }
-    }
-    if (have_km) {
-        for (std::size_t i = 0; i < t.events.size(); ++i) {
-            if (std::fabs(t.events[i].distance_km - km) < 1e-6) return static_cast<int>(i);
-        }
-    }
-    return -1;
-}
-
 namespace {
 
 // Linear interpolation over a sparse row: gaps are filled from their neighbours
@@ -512,7 +487,7 @@ Table parse_table(const Matrix& m, const std::string& name) {
                 have_km = true;
             }
             if (!have_km) throw Error{Err::Value, "no event or distance column"};
-            const std::string key = ev.empty() ? std::to_string(km) : ev;
+            const std::string key = std::to_string(km);   // keyed by distance
             km_of.emplace(key, km);
             const int a = static_cast<int>(agec.num);
             pts[sex][key][a] = facc.num;
@@ -603,7 +578,8 @@ Table parse_table(const Matrix& m, const std::string& name) {
     // ---- matrix format: Sex | Event | OpenStd | 5 | 6 | ... | 100 ----------
     struct RowData {
         int sex = 0;
-        std::string key;
+        std::string key;                  // the distance, as a string
+        std::string origin;               // as written, for messages
         double km = 0;
         double std_s = 0;                 // 0 = column absent or blank
         std::vector<double> factors;      // one per header age column
@@ -664,7 +640,8 @@ Table parse_table(const Matrix& m, const std::string& name) {
 
         RowData rd;
         rd.sex = sex;
-        rd.key = ev.empty() ? std::to_string(km) : ev;
+        rd.key = std::to_string(km);                      // keyed by distance
+        rd.origin = ev.empty() ? std::to_string(km) : ev;
         rd.km = km;
         if (c.std_ >= 0) {
             const Cell& sc = m.at(r, static_cast<std::size_t>(c.std_));
@@ -733,7 +710,7 @@ Table parse_table(const Matrix& m, const std::string& name) {
             if (rd.sex != s) continue;
             std::vector<double> row = rd.factors;
             if (!fill_sparse(ages, row)) {
-                throw Error{Err::Value, "no factors for \"" + rd.key + "\" (" +
+                throw Error{Err::Value, "no factors for \"" + rd.origin + "\" (" +
                                             (s ? "male" : "female") + " rows)"};
             }
             const std::size_t e = index[rd.key];

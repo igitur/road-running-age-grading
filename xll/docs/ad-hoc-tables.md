@@ -23,10 +23,10 @@ One row per (sex, distance). Ages run across the header.
 
 | Sex | Event | OpenStd | 5 | 6 | … | 100 |
 | --- | --- | --- | --- | --- | --- | --- |
-| M | 10kmRoad | 26:24 | 0.5073 | 0.5678 | … | 0.2121 |
-| F | 10kmRoad | 28:46 | 0.6850 | 0.7183 | … | 0.1477 |
-| M | Marathon | 2:00:35 | 0.4414 | 0.5080 | … | 0.1919 |
-| F | Marathon | 2:09:56 | 0.5405 | 0.5874 | … | 0.0625 |
+| M | 10 k | 26:24 | 0.5073 | 0.5678 | … | 0.2121 |
+| F | 10 k | 28:46 | 0.6850 | 0.7183 | … | 0.1477 |
+| M | marathon | 2:00:35 | 0.4414 | 0.5080 | … | 0.1919 |
+| F | marathon | 2:09:56 | 0.5405 | 0.5874 | … | 0.0625 |
 
 44 data rows for a full 22-distance, two-sex table; 99 columns. It is the same
 shape as the published `Age Factors` sheet, so **a table can be copied out of
@@ -37,8 +37,8 @@ Minimal version — only the ages you care about:
 
 | Sex | Event | OpenStd | 30 | 40 | 50 |
 | --- | --- | --- | --- | --- | --- |
-| M | 10kmRoad | 26:24 | 1 | 0.9 | 0.8 |
-| F | 10kmRoad | 28:46 | 1 | 0.85 | 0.75 |
+| M | 10 k | 26:24 | 1 | 0.9 | 0.8 |
+| F | 10 k | 28:46 | 1 | 0.85 | 0.75 |
 
 Gaps are interpolated linearly and the ends are clamped, so `age 35` gets 0.95
 and `age 12` gets the age-30 factor (1.0).
@@ -50,11 +50,11 @@ One row per (sex, distance, age). Reads like a database table and is what a
 
 | Sex | Event | Age | Factor | OpenStd |
 | --- | --- | --- | --- | --- |
-| M | 10kmRoad | 30 | 1 | 26:24 |
-| M | 10kmRoad | 40 | 0.9 | 26:24 |
-| M | 10kmRoad | 50 | 0.8 | 26:24 |
-| F | 10kmRoad | 30 | 1 | 28:46 |
-| F | 10kmRoad | 40 | 0.85 | 28:46 |
+| M | 10 k | 30 | 1 | 26:24 |
+| M | 10 k | 40 | 0.9 | 26:24 |
+| M | 10 k | 50 | 0.8 | 26:24 |
+| F | 10 k | 30 | 1 | 28:46 |
+| F | 10 k | 40 | 0.85 | 28:46 |
 
 Detected by the presence of both an `Age` and a `Factor` column.
 
@@ -74,9 +74,11 @@ Detected by the presence of both an `Age` and a `Factor` column.
 | One sex only is fine — the other sex then errors rather than silently grading wrongly | half a table is legitimate |
 | Failures name the row: `row 12, age 40: factor must be in (0, 1]` | diagnosable in a 99-column table |
 
-Distance cells accept a name (`10kmRoad`, `10k`, `half`) or a number of km
-(`21.1`). Numeric distances let a club grade its own odd-distance time trial
-without inventing an event name.
+Distance cells use the same grammar as the function's distance argument —
+`10 k`, `10 kilometres`, `6.2 miles`, `half marathon`, `marathon`, or a plain
+number of km (`21.1`). Two different spellings of the same distance are the same
+row: rows are keyed by distance, not by text, so `10k` in the table and `10 km`
+in the formula find each other.
 
 ## The alternatives, and why not
 
@@ -152,8 +154,8 @@ factors everywhere except 10 km for over-45s, where it multiplies them by 1.05
 
 ```csv
 Sex,Event,OpenStd,45,50,55,60,65,70
-M,10kmRoad,26:24,0.9724,0.933,0.8937,0.8543,0.8149,0.7755
-F,10kmRoad,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176
+M,10 k,26:24,0.9724,0.933,0.8937,0.8543,0.8149,0.7755
+F,10 k,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176
 ```
 
 ```
