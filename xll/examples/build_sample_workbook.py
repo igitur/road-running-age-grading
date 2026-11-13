@@ -265,9 +265,10 @@ def sheet_start(wb: Workbook) -> None:
         ("About the array formulas", [
             "The multi-cell demos are Excel 365 dynamic array formulas: one formula in the top-left "
             "cell that spills down or across. No Ctrl+Shift+Enter, no curly braces.",
-            "They are stored the way Excel itself stores a dynamic array — a one-cell array formula "
-            "carrying dynamic-array metadata (xl/metadata.xml) — so Excel spills them on open "
-            "instead of reading them as legacy formulas and prefixing them with @.",
+            "All 49 live AG.* cells are stored the way Excel itself stores a dynamic array: a "
+            "one-cell array formula carrying dynamic-array metadata (xl/metadata.xml). Without "
+            "that mark Excel reads such a cell as a legacy Ctrl+Shift+Enter formula and shows it "
+            "as {=AG.GRADE(...)}; with it there are no braces and multi-value results spill.",
             "Dynamic arrays need Excel 365 or Excel 2021. In Excel 2019 and older the spill simply "
             "will not happen and you will see one value; sheet 2, One call, shows every function "
             "returning a single value if you need that.",
@@ -1320,25 +1321,26 @@ METADATA_REL = ('<Relationship Id="rId{id}" Type="http://schemas.openxmlformats.
 
 
 def postprocess(path: Path) -> None:
-    """Add the dynamic-array metadata part and mark each spill anchor `cm="1"`."""
+    """Add the metadata part and mark every array cell `cm="1"`.
+
+    Every live AG.* cell is stored as a one-cell array formula, because that is
+    how an array-returning function has to be persisted. Without the XLDAPR mark
+    Excel reads that as a legacy Ctrl+Shift+Enter formula and shows it as
+    {=AG.GRADE(...)} - braces and no spilling. With the mark it is a dynamic
+    array: no braces, and it spills when there is more than one value. So the
+    mark goes on every such cell, scalar results included, exactly as Excel does
+    when it saves a call to an array-returning function.
+    """
     import re
     import zipfile
 
-    anchors: dict[str, set[str]] = {}
-    for sheet, anchor, _area in _SPILLS:
-        anchors.setdefault(sheet, set()).add(anchor)
-
-    # worksheet part name -> sheet title, in workbook order
-    part_of: dict[str, str] = {}
+    cell_re = re.compile(r'<c r="([A-Z]+\d+)"([^>]*)>(.*?)</c>', re.S)
     with zipfile.ZipFile(path) as z:
         order = re.findall(r'<sheet name="([^"]+)"',
                            z.read("xl/workbook.xml").decode("utf-8"))
         types = z.read("[Content_Types].xml").decode("utf-8")
         rels = z.read("xl/_rels/workbook.xml.rels").decode("utf-8")
         parts = {n: z.read(n) for n in z.namelist()}
-    for i, name in enumerate(order):
-        part_of[f"xl/worksheets/sheet{i + 1}.xml"] = (
-            name.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
 
     if "metadata.xml" not in types:
         types = types.replace("</Types>", METADATA_CT + "</Types>")
@@ -1351,29 +1353,34 @@ def postprocess(path: Path) -> None:
         rels = rels.replace("</Relationships>", rel + "</Relationships>")
 
     marked = 0
-    for part, title in part_of.items():
-        if part not in parts or title not in anchors:
+    for i, _title in enumerate(order):
+        part = f"xl/worksheets/sheet{i + 1}.xml"
+        if part not in parts:
             continue
         xml = parts[part].decode("utf-8")
-        for anchor in anchors[title]:
-            pattern = re.compile(r'<c r="' + anchor + r'"((?:\s+[a-z]+="[^"]*")*)\s*>')
-            def add_cm(m, _a=anchor):
-                nonlocal marked
-                if "cm=" in m.group(1):
-                    return m.group(0)
-                marked += 1
-                return f'<c r="{_a}" cm="1"{m.group(1)}>'
-            xml, n = pattern.subn(add_cm, xml, count=1)
-            if n == 0:
-                raise SystemExit(f"postprocess: could not find cell {title}!{anchor}")
-        parts[part] = xml.encode("utf-8")
+
+        def fix(m):
+            ref, attrs, inner = m.group(1), m.group(2), m.group(3)
+            if '<f t="array"' not in inner:
+                return m.group(0)                      # not an array cell
+            if f'<f t="array" ref="{ref}">' not in inner:
+                raise SystemExit(
+                    f"postprocess: {part} {ref} is a legacy multi-cell CSE formula "
+                    f"- the workbook must use dynamic arrays only")
+            if "cm=" in attrs:
+                return m.group(0)                      # already marked
+            nonlocal marked
+            marked += 1
+            return f'<c r="{ref}" cm="1"{attrs}>{inner}</c>'
+
+        parts[part] = cell_re.sub(fix, xml).encode("utf-8")
+
+    if marked == 0:
+        raise SystemExit("postprocess: no array cells found - wrong sheet mapping?")
+
     parts["[Content_Types].xml"] = types.encode("utf-8")
     parts["xl/_rels/workbook.xml.rels"] = rels.encode("utf-8")
     parts["xl/metadata.xml"] = METADATA_XML.encode("utf-8")
-
-    want = sum(len(v) for v in anchors.values())
-    if marked != want:
-        raise SystemExit(f"postprocess: marked {marked} cells, expected {want}")
 
     # rewrite deterministically: fixed order and timestamps, so --check can
     # compare byte for byte
@@ -1385,6 +1392,7 @@ def postprocess(path: Path) -> None:
             info.external_attr = 0o600 << 16
             z.writestr(info, parts[name])
     tmp.replace(path)
+    print(f"      marked {marked} array cells for dynamic-array behaviour")
 
 
 # ---------------------------------------------------------------------------
