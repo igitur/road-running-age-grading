@@ -1,0 +1,23 @@
+version: 2
+
+# Actions age silently: a major bump that drops Node 20, changes a default, or
+# retires a ref only surfaces when a release runs. These PRs keep the pins
+# current without anyone remembering to look; the ci check on each PR is what
+# proves the bump did not break the build.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
