@@ -360,6 +360,48 @@ void test_adhoc() {
     NEAR(ag::grade(txt("F"), num(50), num(10.0), num(2400), lsx).v[0],
          100.0 * (1726.0 / 0.8) / 2400.0, 1e-3);
 
+    // Which distance strings are accepted. Every published event name must work
+    // as written (that is what AG.TABLES/AG.TABLEINFO report), the obvious
+    // aliases must work, and junk must be refused rather than guessed at.
+    {
+        static const char* accepted[] = {
+            "1MileRoad", "5kmRoad", "6kmRoad", "4MileRoad", "8kmRoad", "5MileRoad",
+            "10kmRoad", "7Mile", "12km", "15km", "10Mile", "20km", "Half.Mar",
+            "25km", "30km", "Marathon", "50km", "50Mile", "100km", "150km",
+            "100Mile", "200km",
+            "10k", "10km", "10KM", "10 km", " 10K ", "10k road", "10kRoad",
+            "5 Mile", "5mile", "5mi", "Half", "half marathon", "HALF-MARATHON",
+            "hm", "21.0975", "mar", "42.195", "mile", "1 mile", "30K", "100 mile",
+            "10",          // a numeric string is kilometres, same as the number 10
+        };
+        static const char* refused[] = {
+            "bogus", "", "500km", "1.5mi", "ten k",
+        };
+        for (const char* d : accepted) {
+            const ag::Out o = ag::factor_of(txt("M"), num(40), txt(d), txt("2025"));
+            const double f = o.v.empty() ? std::nan("") : o.v[0];
+            if (!(std::isfinite(f) && f > 0.0 && f <= 1.0)) {
+                ++g_checks; ++g_failures;
+                std::printf("  FAIL distance %s should be accepted\n", d);
+            } else {
+                ++g_checks;
+            }
+        }
+        for (const char* d : refused) {
+            const ag::Out o = ag::factor_of(txt("M"), num(40), txt(d), txt("2025"));
+            const double f = o.v.empty() ? std::nan("") : o.v[0];
+            if (std::isfinite(f)) {
+                ++g_checks; ++g_failures;
+                std::printf("  FAIL distance \"%s\" should be refused, got %f\n", d, f);
+            } else {
+                ++g_checks;
+            }
+        }
+        // the Road suffix must not change the answer
+        NEAR(ag::factor_of(txt("M"), num(40), txt("10k road"), txt("2025")).v[0],
+             ag::factor_of(txt("M"), num(40), txt("10kmRoad"), txt("2025")).v[0], 1e-12);
+    }
+
     // OpenStd may be omitted when the distance is a published one
     const ag::Matrix nostd = mat({
         {"Sex", "Event", "30", "40", "50"},

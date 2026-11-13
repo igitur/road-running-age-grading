@@ -49,6 +49,15 @@ for seconds.
 | `"Marathon"`, `"mar"` | 42.195 km |
 | `"1 Mile"`, `"mile"` | 1.609344 km |
 | `12.5` | 12.5 km — interpolated between 12 km and 15 km |
+| `"10"` | 10 km — a numeric string is kilometres, like the number |
+
+The published event names carry a `Road` suffix (`10kmRoad`, `5MileRoad`); it is
+optional, and case, spaces and underscores are ignored, so `10kmRoad`, `10k road`,
+`10KM`, `10 km` and `10k` all mean 10 km. Aliases: `mile`/`1 mile`/`1mi`,
+`half`/`hm`/`half marathon`/`half-marathon`/`Half.Mar`/`21.0975`,
+`marathon`/`mar`/`42.195`, and the `Nk`/`Nkm`/`Nmi`/`Nmile` forms of each
+published distance. Anything else is refused — a misspelt event is not snapped to
+its nearest neighbour.
 
 Off-grid distances interpolate linearly between the two nearest published rows,
 which is what the published calculator does. Below 1 mile and above 200 km there

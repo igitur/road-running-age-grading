@@ -39,6 +39,10 @@ DISTANCE_ALIASES = {
 
 def parse_distance(text: str) -> float:
     key = text.strip().lower().replace("_", "").replace(" ", "")
+    # the tables name events with a "Road" suffix; accept it or leave it off,
+    # matching what the Excel add-in does
+    if key.endswith("road") and len(key) > 4:
+        key = key[:-4]
     if key in DISTANCE_ALIASES:
         return DISTANCE_ALIASES[key]
     try:

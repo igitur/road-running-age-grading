@@ -198,7 +198,13 @@ bool parse_distance(const Cell& c, double& km_out, std::string& event_out) {
     if (!c.is_text()) return false;
     const std::string raw = trim(c.text);
     if (raw.empty()) return false;
-    const std::string key = squash(raw);
+    std::string key = squash(raw);
+    // The tables name their events with a "Road" suffix ("10kmRoad"). Accept it
+    // or leave it off, including the formats the alias table does not spell out
+    // ("10k road", "10KROAD"): strip it and match the bare distance instead.
+    if (key.size() > 4 && key.compare(key.size() - 4, 4, "road") == 0) {
+        key.resize(key.size() - 4);
+    }
     for (const auto& a : kAliases) {
         if (key == a.key) { km_out = a.km; event_out = raw; return true; }
     }
