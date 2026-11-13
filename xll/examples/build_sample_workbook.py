@@ -180,13 +180,21 @@ def widths(ws, spec: dict[str, int]) -> None:
         ws.column_dimensions[col].width = w
 
 
+_SPILLS: list[tuple[str, str, str]] = []      # (sheet, anchor, area)
+
+
 def live(ws, ref: str, formula: str, fmt: str | None = None,
          ref_range: str | None = None):
-    """A live AG.* formula, optionally as a legacy array formula over `ref_range`."""
+    """A live AG.* formula.
+
+    Written as a plain formula, never a legacy Ctrl+Shift+Enter array formula:
+    Excel's dynamic arrays spill the result on their own, so `ref_range` only
+    says how much area to pre-format. Nothing is written into the cells the
+    spill will cover — a spilled value lands on an empty cell.
+    """
+    ws[ref] = formula
     if ref_range:
-        ws[ref] = ArrayFormula(ref=ref_range, text=formula)
-    else:
-        ws[ref] = formula
+        _SPILLS.append((ws.title, ref, ref_range))
     block = ws[ref_range] if ref_range else ((ws[ref],),)
     for row in block:
         for c in (row if isinstance(row, tuple) else (row,)):
@@ -444,16 +452,20 @@ def sheet_squad(wb: Workbook) -> None:
 def sheet_functions(wb: Workbook) -> None:
     ws = wb.create_sheet("2 One call")
     widths(ws, {"A": 20, "B": 34, "C": 14, "D": 13, "E": 11, "F": 14, "G": 11,
-                "H": 44, "I": 12, "J": 12})
+                "H": 44, "I": 14, "J": 14, "K": 14, "L": 14, "M": 14})
     r = title(ws, "Every function, scalar arguments",
               "One row per call. Column C is live, D is the expected answer, E is the verdict.")
 
-    def note_block(row: int, text: str) -> None:
-        """Prose in F:J, so it never squeezes a numeric column."""
-        c = ws.cell(row=row, column=6, value=text)
+    def note_block(row: int, text: str, first_col: int = 6, last_col: int = 10,
+                   wrap: int = 78) -> None:
+        """Prose in a merged span of its own. Never merge over an array
+        formula's output range: Excel reports that as corrupt and repairs the
+        file ("Removed Records: Cell information")."""
+        c = ws.cell(row=row, column=first_col, value=text)
         c.font, c.alignment = F_BODY, LEFT_WRAP
-        ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
-        ws.row_dimensions[row].height = 15 * max(1, len(text) // 78 + 1)
+        ws.merge_cells(start_row=row, start_column=first_col, end_row=row,
+                       end_column=last_col)
+        ws.row_dimensions[row].height = 15 * max(1, len(text) // wrap + 1)
 
     subhead(ws, 4, "The five grading functions")
     header_row(ws, 5, ["Function", "Arguments", "live", "expected", "check"])
@@ -555,7 +567,7 @@ def sheet_functions(wb: Workbook) -> None:
          "The explanation for the last failed call - the first thing to reach for when a "
          "column fills with #NUM!. Its value depends on what failed last, so the check only "
          "asks that it is text; sheet 4 shows it next to a known failure.",
-         '=IF(ISTEXT({c}),"OK","MISMATCH")'),
+         '=IF(ISERR({c}),"",IF(ISTEXT({c}),"OK","MISMATCH"))'),
         ("AG.VERSION", "(none)", "=AG.VERSION()",
          "aggrade-xll 2025.1 (4 built-in editions)",
          "Add-in version and how many editions are compiled in.",
@@ -570,6 +582,7 @@ def sheet_functions(wb: Workbook) -> None:
         c.value = check.format(c=f"C{row}", r=row)
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         note_block(row, why)
+        row += 1
 
     # AG.CACHEINFO live; AG.CACHECLEAR shown but not live, because a live one
     # would empty the cache on every recalculation and defeat the demo.
@@ -580,7 +593,8 @@ def sheet_functions(wb: Workbook) -> None:
     note_block(row, "Six counters: built-in editions, loaded CSVs, custom ranges held, cache "
                     "hits, misses, capacity. No expected values - they depend on what this "
                     "workbook has done. Recalculate and watch the hit count climb: a range table "
-                    "is parsed once, not once per cell.")
+                    "is parsed once, not once per cell.",
+               first_col=9, last_col=13, wrap=64)
     row += 1
 
     for col, value in (("A", "AG.CACHECLEAR"), ("B", "(none)")):
@@ -1147,6 +1161,101 @@ def sheet_reference(wb: Workbook) -> None:
     ws.page_setup.fitToWidth = 1
 
 
+
+# ---------------------------------------------------------------------------
+# structural validation
+#
+# Excel silently "repairs" a workbook that violates its own rules, which is how
+# a file arrives with "Removed Records: Cell information" and no clue where. The
+# rules that actually bite with openpyxl:
+#
+#   * an array formula's range may not overlap a merged range (Excel drops the
+#     offending cell records);
+#   * two merged ranges may not overlap, and a merge may not repeat;
+#   * a merge must be anchored on a cell that holds a value.
+#
+# These are cheap to check, so they are checked on every build and in --check.
+# ---------------------------------------------------------------------------
+def cell_refs(ref: str) -> set[str]:
+    from openpyxl.utils.cell import range_boundaries
+    c1, r1, c2, r2 = range_boundaries(ref)
+    out = set()
+    for r in range(r1, r2 + 1):
+        for c in range(c1, c2 + 1):
+            out.add(f"{get_column_letter(c)}{r}")
+    return out
+
+
+def validate(wb) -> list[str]:
+    problems: list[str] = []
+    for ws in wb.worksheets:
+        merges = []
+        for rng in ws.merged_cells.ranges:
+            ref = str(rng)
+            merges.append(ref)
+            anchor = ws.cell(row=rng.min_row, column=rng.min_col).value
+            if anchor is None or (isinstance(anchor, str) and not anchor.strip()):
+                problems.append(f"{ws.title}: merged range {ref} has no value in its anchor cell")
+        # overlapping or duplicate merges
+        seen: dict[str, str] = {}
+        for ref in merges:
+            for cell in cell_refs(ref):
+                if cell in seen:
+                    problems.append(f"{ws.title}: {ref} overlaps {seen[cell]} at {cell}")
+                    break
+                seen[cell] = ref
+        # a dynamic array cannot spill onto a cell that already holds a value
+        # (Excel shows #SPILL!), so every cell in an intended spill area except
+        # its anchor must be empty
+        for sheet, anchor, area in _SPILLS:
+            if sheet != ws.title:
+                continue
+            for cell in sorted(cell_refs(area) - {anchor}):
+                v = ws[cell].value
+                if v is not None and not (isinstance(v, str) and not v.strip()):
+                    problems.append(f"{ws.title}: {anchor} spills over {cell}, "
+                                    f"which holds {v!r} -> #SPILL! in Excel")
+
+        # array formulas must not touch a merge
+        for row in ws.iter_rows():
+            for c in row:
+                v = c.value
+                if isinstance(v, ArrayFormula):
+                    if f"{get_column_letter(c.column)}{c.row}" != v.ref.split(":")[0]:
+                        problems.append(f"{ws.title}!{c.coordinate}: array formula anchored "
+                                        f"away from the top-left of {v.ref}")
+                    for cell in cell_refs(v.ref):
+                        if cell in seen:
+                            problems.append(f"{ws.title}: array formula {v.ref} overlaps "
+                                            f"merged range {seen[cell]} at {cell}")
+                            break
+    return problems
+
+
+
+def guard_verdicts(wb) -> None:
+    """Keep every OK/MISMATCH cell silent until there is something to compare.
+
+    Without this, a squad sheet opened before the add-in is loaded shows a wall
+    of MISMATCH: the live cells are blank, so `ABS(blank - expected)` is simply
+    a large number. A blank is not a disagreement, and an error is not one
+    either - the error is already visible in the live cell.
+    """
+    import re
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for c in row:
+                v = c.value
+                if not isinstance(v, str) or not v.startswith("=") or '"MISMATCH"' not in v:
+                    continue
+                inner = v[1:]
+                m = re.search(r"ABS\(([^()-]+?)-", v)
+                if m and re.match(r"^[A-Z]+\d+(:[A-Z]+\d+)?$", m.group(1)):
+                    c.value = f'=IF(COUNTA({m.group(1)})=0,"",IFERROR({inner},""))'
+                else:
+                    c.value = f'=IFERROR({inner},"")'
+
+
 # ---------------------------------------------------------------------------
 def build(path: Path) -> None:
     wb = Workbook()
@@ -1158,6 +1267,16 @@ def build(path: Path) -> None:
     sheet_custom(wb)
     sheet_times(wb)
     sheet_reference(wb)
+    guard_verdicts(wb)
+
+    # There are no cached results in this file - every value comes from the
+    # add-in - so Excel must recalculate on open.
+    wb.calculation.fullCalcOnLoad = True
+
+    problems = validate(wb)
+    if problems:
+        raise SystemExit("refusing to write a structurally invalid workbook:\n  "
+                         + "\n  ".join(problems))
     for ws in wb.worksheets:
         ws.sheet_view.zoomScale = 90
         # print setup: one page wide, as many pages tall as it needs. Without
@@ -1182,6 +1301,15 @@ def main() -> int:
     build(tmp)
 
     if a.check:
+        committed = load_workbook(OUT) if OUT.exists() else None
+        if committed is not None:
+            problems = validate(committed)
+            if problems:
+                for pb in problems:
+                    print(f"  INVALID  {pb}", file=sys.stderr)
+                print(f"{OUT.name}: structurally invalid", file=sys.stderr)
+                tmp.unlink(missing_ok=True)
+                return 1
         import zipfile
 
         # docProps/core.xml carries the build timestamp, so it differs on every

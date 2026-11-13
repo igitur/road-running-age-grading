@@ -81,6 +81,13 @@ $ make sample                 # regenerate from the verified implementation
 $ python3 examples/build_sample_workbook.py --check   # CI: is it stale?
 ```
 
+Multi-value functions are ordinary formulas that spill as Excel 365 dynamic
+arrays — no Ctrl+Shift+Enter, no curly braces. The build refuses to write a file
+that would make Excel repair itself or show `#SPILL!`: no merged range may
+overlap an array's output area, no two merges may overlap, and nothing may sit in
+a cell a formula is meant to spill onto. `--check` runs the same validation on
+the committed file.
+
 Every number in it is computed by `aggrade` at build time — nothing is typed by
 hand, so it can be rebuilt after any change to the tables. The custom-table
 expected values were additionally checked against the C++ itself
