@@ -77,6 +77,13 @@ def main() -> int:
     ap.add_argument("--show", help="print the curve for one sheet, e.g. 5K")
     a = ap.parse_args()
 
+    missing = [p.name for p in SEX_FILES.values() if not p.exists()]
+    if missing:
+        print(f"SKIPPED: {', '.join(missing)} not present.")
+        print("The working files live in the upstream tables repository:")
+        print("  make fetch      # clones it into repo/")
+        return 0
+
     worst_overall = 0.0
     for sex, path in SEX_FILES.items():
         wb = openpyxl.load_workbook(path, data_only=True)

@@ -1,0 +1,51 @@
+name: check
+
+# Proves three things on every push:
+#   1. the committed data/mldr_road.json really is what the published calculator
+#      page says (re-extracted and diffed);
+#   2. the published artefacts have not changed (SHA-256);
+#   3. the implementation still reproduces the calculator and the workbooks.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # monthly: tells us when the upstream tables or calculator change
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tool dependencies
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet -r requirements-tools.txt
+
+      - name: Fetch sources (calculator page, workbook, upstream tables repo)
+        run: make fetch
+
+      - name: Re-extract the factor tables and require a clean diff
+        run: |
+          make data
+          if ! git diff --exit-code -- data/mldr_road.json; then
+            echo "::error file=data/mldr_road.json::Published tables changed since data/ was extracted"
+            exit 1
+          fi
+
+      - name: Validate (exact grid, JS oracle, standards cross-check)
+        run: make verify
+
+      - name: Reproduce the fitted curves from their parameters
+        run: make curve
+
+      - name: Check documentation links
+        run: make check-links
