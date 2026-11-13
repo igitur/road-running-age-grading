@@ -63,7 +63,7 @@ and the reference given in the factors workbook's VBA header.
 | --- | --- |
 | `data/mldr_road.json` | 2025/2020/2015/2010 factors and standards |
 | `data/source_sha256.txt` | hashes of the four source artefacts |
-| `aggrade/` | reference implementation |
+| `brrag/` | reference implementation |
 | `tools/extract_tables.py` | calculator page → JSON |
 | `tools/js_oracle.js` | runs the published calculator's JS as an oracle |
 | `tools/verify.py` | validation harness (checks A/B/C) |

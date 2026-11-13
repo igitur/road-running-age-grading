@@ -46,7 +46,7 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          built=$(ls dist/*.whl | sed -E 's|^dist/aggrade-([^-]+)-.*$|\1|')
+          built=$(ls dist/*.whl | sed -E 's|^dist/brrag-([^-]+)-.*$|\1|')
           echo "built $built"
           echo "version=$built" >> "$GITHUB_OUTPUT"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
           python -m venv /tmp/wheeltest
           /tmp/wheeltest/bin/pip install --quiet --disable-pip-version-check dist/*.whl
-          # Run from outside the checkout: aggrade must not fall back to ../data.
+          # Run from outside the checkout: brrag must not fall back to ../data.
           cd /tmp
           /tmp/wheeltest/bin/python "$GITHUB_WORKSPACE/tools/wheel_smoke.py" "${{ steps.version.outputs.version }}"
 
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/aggrade
+      url: https://pypi.org/p/brrag
     permissions:
       id-token: write
     steps:
@@ -149,13 +149,13 @@ jobs:
           set -euo pipefail
           version="${{ needs.build.outputs.version }}"
           for _ in $(seq 1 12); do
-            if curl -fsS "https://pypi.org/pypi/aggrade/${version}/json" >/dev/null; then
-              echo "aggrade ${version} is on PyPI"
-              curl -fsS "https://pypi.org/pypi/aggrade/${version}/json" \
+            if curl -fsS "https://pypi.org/pypi/brrag/${version}/json" >/dev/null; then
+              echo "brrag ${version} is on PyPI"
+              curl -fsS "https://pypi.org/pypi/brrag/${version}/json" \
                 | python -c 'import json,sys; d=json.load(sys.stdin); print("\n".join("  "+u["filename"] for u in d["urls"]))'
               exit 0
             fi
             sleep 5
           done
-          echo "::error::PyPI does not list aggrade ${version} yet"
+          echo "::error::PyPI does not list brrag ${version} yet"
           exit 1

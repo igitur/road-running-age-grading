@@ -3,9 +3,9 @@ requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aggrade"
+name = "brrag"
 dynamic = ["version"]
-description = "Road-running age grading on the USATF MLDR 2025 tables"
+description = "BRRAG - Botha's Road Running Age Grading on the USATF MLDR 2025 tables"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-aggrade = "aggrade.cli:main"
+brrag = "brrag.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/igitur/road-running-age-grading"
@@ -41,13 +41,13 @@ Changelog = "https://github.com/igitur/road-running-age-grading/releases"
 "Published calculator" = "https://www.howardgrubb.co.uk/athletics/mldrroad25.html"
 
 [tool.setuptools]
-packages = ["aggrade"]
+packages = ["brrag"]
 
-# The tables ship inside the wheel: aggrade/core.py prefers the packaged copy and
+# The tables ship inside the wheel: brrag/core.py prefers the packaged copy and
 # only falls back to ../data/ when running from a source checkout. Keep the two
 # byte-identical with `make pkgdata` (checked by `make check`).
 [tool.setuptools.package-data]
-aggrade = ["data/*.json"]
+brrag = ["data/*.json"]
 
 # The version comes from the git tag, so `git tag v0.0.2 && git push --tags` is the
 # whole release procedure. Building outside a git checkout needs PKG-INFO (sdists

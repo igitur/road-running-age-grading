@@ -24,7 +24,7 @@ SOFTWARE.
 
 SCOPE
 
-This licence covers the code in this repository: the `aggrade/` package, the
+This licence covers the code in this repository: the `brrag/` package, the
 `tools/` scripts and the prose in `docs/` and `README.md`.
 
 It does NOT cover the age-grading tables or the source artefacts. Those are the

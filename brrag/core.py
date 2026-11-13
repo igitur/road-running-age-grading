@@ -22,7 +22,7 @@ from typing import Iterable
 def _default_data() -> Path:
     """Where the tables live.
 
-    An installed package carries its own copy (aggrade/data/mldr_road.json); a
+    An installed package carries its own copy (brrag/data/mldr_road.json); a
     source checkout keeps them in the repo's data/ directory, derived from the
     published calculator page by tools/extract_tables.py. The packaged copy wins
     so a wheel never reads outside itself.

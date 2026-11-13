@@ -42,8 +42,8 @@ Drop `<name>.csv` in any of these and refer to it by `<name>`:
 
 1. the folder holding the `.xll`
 2. `<xll folder>\tables\`
-3. `%APPDATA%\aggrade\`
-4. `%APPDATA%\aggrade\tables\`
+3. `%APPDATA%\brrag\`
+4. `%APPDATA%\brrag\tables\`
 
 The first match wins. The file format is the **matrix ad hoc format**
 ([ad-hoc-tables.md](ad-hoc-tables.md)) — the same parser, so a table that works

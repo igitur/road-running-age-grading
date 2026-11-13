@@ -7,7 +7,7 @@ arithmetic of the official VBA workbook and of the tables in
 `Male/FemaleRoadStd2025.xlsx`. Where the three implementations differ, the
 difference is called out.
 
-The reference implementation is `aggrade/core.py`; it is verified line-for-line
+The reference implementation is `brrag/core.py`; it is verified line-for-line
 against the calculator's own JavaScript by `tools/verify.py`
 ([08-validation.md](08-validation.md)).
 
@@ -99,7 +99,7 @@ The low end has no equivalent gap.
 
 Affected population: fractional ages in the last year only — so in practice
 nobody. But if you are asserting equality with the calculator, you must
-reproduce it. `aggrade` reproduces it by default (`age_policy="ui"`) and offers
+reproduce it. `brrag` reproduces it by default (`age_policy="ui"`) and offers
 `age_policy="linear"` to interpolate normally.
 
 The **VBA workbook** has a different, wider quirk: `AgeFactor(event, age As
@@ -132,7 +132,7 @@ bracket_distance(table, dist):
   anything under 1 mile and for anything over 200 km. This is a real, deliberate
   consequence of how its search loop terminates — the upper end is an
   off-by-one, but it is the behaviour everyone sees.
-* `aggrade` raises `OutOfRange` to match (`policy="strict"`, the default) and
+* `brrag` raises `OutOfRange` to match (`policy="strict"`, the default) and
   offers `policy="clamp"` to use the nearest end row instead.
 * The **VBA workbook** extrapolates at both ends instead of refusing. Three
   implementations, three behaviours — choose explicitly.
@@ -167,7 +167,7 @@ notes:
    ```
 
    That introduces up to ±0.005% of artefact from display rounding alone. Use
-   the unrounded value for analysis; use `aggrade.ui.ui_percent()` when you need
+   the unrounded value for analysis; use `brrag.ui.ui_percent()` when you need
    to match the web page's digits exactly. `tools/verify.py` does the latter,
    which is why it can assert a 0.000000 pp difference.
 
@@ -180,7 +180,7 @@ time = S_age / (percent / 100)
 ```
 
 Both the age-graded and the open time follow from the same lookup
-(`T_graded = S_open / (percent/100)`). In `aggrade`: `Tables.time_for_percent()`.
+(`T_graded = S_open / (percent/100)`). In `brrag`: `Tables.time_for_percent()`.
 
 ---
 
@@ -220,7 +220,7 @@ def grade(t, sex, age, dist_km, time_s):
 
 The only subtleties are the boundary rules above and the event-name lookup,
 which is **case-insensitive but otherwise exact** (`10kmRoad`, not `10k`) in the
-VBA; the calculator's dropdown uses the same strings. `aggrade` accepts the
+VBA; the calculator's dropdown uses the same strings. `brrag` accepts the
 table name or a `--distance` alias (`10k`, `half`, `marathon`, `12.7` …).
 
 ---

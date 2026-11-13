@@ -1,4 +1,8 @@
-# Age grading — USATF MLDR road tables
+# BRRAG — Botha's Road Running Age Grading
+
+Age grading on the USATF MLDR 2025 road tables. The Python package, the
+CLI and the PyPI distribution are called `brrag`; the repository keeps its
+name and URL.
 
 [![check](https://github.com/igitur/road-running-age-grading/actions/workflows/check.yml/badge.svg)](https://github.com/igitur/road-running-age-grading/actions/workflows/check.yml)
 
@@ -10,12 +14,12 @@ time** and the **age grade percentage** — one number that lets a 12-year-old's
 5 km and a 72-year-old's marathon be compared on the same scale.
 
 ```console
-$ aggrade 40:00 --age 40 --sex M --distance 10k
+$ brrag 40:00 --age 40 --sex M --distance 10k
 factor             0.9636
 age-graded        38:32.6
 age grade           68.49%
 
-$ aggrade 32:00 --age 65 --sex M --distance 10k
+$ brrag 32:00 --age 65 --sex M --distance 10k
 factor             0.7761
 age-graded        24:50.1
 age grade          106.30%      # above 100% = better than the age standard
@@ -24,8 +28,8 @@ age grade          106.30%      # above 100% = better than the age standard
 ## Install
 
 ```console
-$ pip install aggrade
-$ aggrade 40:00 --age 40 --sex M --distance 10k
+$ pip install brrag
+$ brrag 40:00 --age 40 --sex M --distance 10k
 ```
 
 Stdlib-only, no dependencies, and the wheel carries its own tables so it works
@@ -53,7 +57,7 @@ Full index: [docs/index.md](docs/index.md).
 ## Quick use (Python)
 
 ```python
-from aggrade import table, format_time
+from brrag import table, format_time
 
 t = table(2025, "M")                       # or table(2025, "F")
 g = t.grade("M", 40, 40 * 60, dist_km=10)  # 40:00 for 10 km at age 40
@@ -97,7 +101,7 @@ and clones the upstream tables repository when you want checks B and C to run
 ```
 data/mldr_road.json        2025 (+2020/2015/2010) factors, extracted and hashed
 data/source_sha256.txt     hashes of every source artefact we read
-aggrade/                   reference implementation (core.py, ui.py, cli.py)
+brrag/                   reference implementation (core.py, ui.py, cli.py)
 tools/extract_tables.py    pull factor tables out of the calculator page -> JSON
 tools/js_oracle.js         run the *published calculator's own JS* under Node
 tools/verify.py            three-way validation harness (A/B/C)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Smoke-test an INSTALLED aggrade: does the wheel carry working tables?
+"""Smoke-test an INSTALLED brrag: does the wheel carry working tables?
 
 Run this from outside the checkout (the release workflow runs it from /tmp after
-`pip install dist/*.whl`) so the source-tree fallback in aggrade.core cannot
+`pip install dist/*.whl`) so the source-tree fallback in brrag.core cannot
 answer on the packaged copy's behalf. The failure this exists to catch is a wheel
 that imports fine and then reports the tables missing.
 
@@ -28,20 +28,20 @@ def main(argv: list[str]) -> int:
         if not ok:
             failures.append(name)
 
-    import aggrade
-    from aggrade import format_time, table
+    import brrag
+    from brrag import format_time, table
 
-    print(f"aggrade {aggrade.__version__} from {Path(aggrade.__file__).parent}")
+    print(f"brrag {brrag.__version__} from {Path(brrag.__file__).parent}")
     if expected_version:
-        check("__version__", aggrade.__version__, expected_version)
+        check("__version__", brrag.__version__, expected_version)
 
     # The tables must have travelled with the package, not been found beside it.
-    data = aggrade.core.DEFAULT_DATA
-    packaged = Path(aggrade.__file__).parent / "data" / "mldr_road.json"
+    data = brrag.core.DEFAULT_DATA
+    packaged = Path(brrag.__file__).parent / "data" / "mldr_road.json"
     print(f"tables read from {data} ({data.stat().st_size:,} bytes)")
     check("tables live inside the package", str(data), str(packaged))
 
-    tables = aggrade.load_tables()
+    tables = brrag.load_tables()
     check("editions shipped", len(tables), 8)
 
     g = table(2025, "M").grade("M", 40, 40 * 60, dist_km=10)
@@ -66,7 +66,7 @@ def main(argv: list[str]) -> int:
     # Refusals stay refusals.
     try:
         table(2025, "M").grade("M", 40, 40 * 60, dist_km=500)
-    except aggrade.OutOfRange:
+    except brrag.OutOfRange:
         print("ok   out-of-range distance refused")
     else:
         failures.append("out-of-range distance was not refused")
@@ -75,7 +75,7 @@ def main(argv: list[str]) -> int:
     # The console script, which is what a pip user actually gets. Resolve it next
     # to this interpreter: the venv is not on PATH when the parent process
     # launched it by absolute path.
-    script = Path(sys.executable).parent / ("aggrade.exe" if sys.platform == "win32" else "aggrade")
+    script = Path(sys.executable).parent / ("brrag.exe" if sys.platform == "win32" else "brrag")
     out = subprocess.run([str(script), "40:00", "--age", "40", "--sex", "M",
                           "--distance", "10k", "--json"],
                          capture_output=True, text=True)

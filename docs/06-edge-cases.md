@@ -1,11 +1,11 @@
 # 06 — Edge cases and quirks
 
 Everything here has bitten somebody. Each entry says what happens, what the
-published calculator does, and what `aggrade` does about it.
+published calculator does, and what `brrag` does about it.
 
 ## Input boundaries
 
-| Input | Calculator behaviour | `aggrade` behaviour | Comment |
+| Input | Calculator behaviour | `brrag` behaviour | Comment |
 | --- | --- | --- | --- |
 | `age < 5` | clamps to the age-5 column | same, silently | No table data exists below 5. Do not extrapolate the youth parabola — it diverges fast. |
 | `age = 5 … 100` (integer) | exact cell | exact cell | The normal case. |

@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from aggrade.core import load_tables            # noqa: E402
+from brrag.core import load_tables            # noqa: E402
 
 DST = ROOT / "xll" / "test" / "expected.h"
 
@@ -58,7 +58,7 @@ def main() -> int:
     text = f"""\
 // GENERATED FILE — do not edit.
 // Produced by xll/tools/gen_expectations.py from the verified Python
-// implementation (aggrade). Regenerate with:  make -C xll expectations
+// implementation (brrag). Regenerate with:  make -C xll expectations
 #pragma once
 
 namespace ag::test {{

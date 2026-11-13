@@ -17,8 +17,8 @@ gets a version like `0.1.dev21+ga620381a3`, which is not publishable.
 
 | Asset | What it is |
 | --- | --- |
-| `aggrade-<version>-py3-none-any.whl` | The library, the CLI, and the 22-event × 96-age tables for four editions, inside the package. 39 kB. |
-| `aggrade-<version>.tar.gz` | The source distribution. |
+| `brrag-<version>-py3-none-any.whl` | The library, the CLI, and the 22-event × 96-age tables for four editions, inside the package. 39 kB. |
+| `brrag-<version>.tar.gz` | The source distribution. |
 | `age-grading-sample.xlsx` | The sample workbook from `xll/examples/`, byte-identical to the one in the repository at that tag. Its twelve live formulas need the add-in; it is a demonstration, not a data file. |
 | `SHA256SUMS` | Digests of the three above. |
 
@@ -29,7 +29,7 @@ framework, so it is built locally (see [the add-in README](../xll/README.md)).
 
 1. **build** — full clone (`fetch-depth: 0`, or setuptools-scm sees no tags),
    `python -m build`, then two gates:
-   * **the version must be the tag** — `v0.0.2` must produce `aggrade-0.0.2`,
+   * **the version must be the tag** — `v0.0.2` must produce `brrag-0.0.2`,
      otherwise the run fails rather than publishing something mislabelled;
    * **the wheel must carry its own tables** — `tools/wheel_smoke.py` installs
      the wheel into a fresh venv, runs from `/tmp` so the source-tree fallback
@@ -54,7 +54,7 @@ no secret in the repository. PyPI verifies the workflow's identity instead.
 
    | Field | Value |
    | --- | --- |
-   | PyPI Project Name | `aggrade` |
+   | PyPI Project Name | `brrag` |
    | Owner | `igitur` |
    | Repository name | `road-running-age-grading` |
    | Workflow name | `release.yml` |
@@ -75,7 +75,7 @@ release still happens; nothing is lost by publishing to GitHub first.
 
 Trusted publishing is the better default — nothing to leak, nothing to rotate.
 A token also works: create one at **Account settings → API tokens**, scope it to
-the `aggrade` project, store it as the secret `PYPI_API_TOKEN`, and replace the
+the `brrag` project, store it as the secret `PYPI_API_TOKEN`, and replace the
 publish step with
 
 ```yaml
@@ -107,7 +107,7 @@ $ gh run rerun <run-id> --failed -R igitur/road-running-age-grading
 
 ## After a release
 
-* `pip install aggrade` picks up the new version within a minute or two; the
+* `pip install brrag` picks up the new version within a minute or two; the
   `pypi` job's final step has already confirmed the JSON API lists it.
 * If a release is broken, **yank** rather than delete (delete only frees the
   filename; installs that already resolved it stay resolvable):
@@ -121,13 +121,13 @@ $ gh run rerun <run-id> --failed -R igitur/road-running-age-grading
 
 `data/mldr_road.json` is derived from the published calculator page by
 `tools/extract_tables.py`. The wheel needs its own copy, so
-`aggrade/data/mldr_road.json` is a byte-identical duplicate:
+`brrag/data/mldr_road.json` is a byte-identical duplicate:
 
 ```console
-$ make pkgdata    # copy data/mldr_road.json -> aggrade/data/mldr_road.json
+$ make pkgdata    # copy data/mldr_road.json -> brrag/data/mldr_road.json
 ```
 
 `make check` (and therefore CI on every push) fails if the two ever differ, so a
 table revision cannot reach a release with only half of the update applied.
-`aggrade.core.DEFAULT_DATA` prefers the packaged copy and only falls back to
+`brrag.core.DEFAULT_DATA` prefers the packaged copy and only falls back to
 `../data/` when running from a checkout.

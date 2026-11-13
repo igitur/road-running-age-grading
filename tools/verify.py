@@ -34,8 +34,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aggrade.core import OutOfRange, load_tables  # noqa: E402
-from aggrade.ui import ui_percent  # noqa: E402
+from brrag.core import OutOfRange, load_tables  # noqa: E402
+from brrag.ui import ui_percent  # noqa: E402
 
 PAGE = ROOT / "page.html"
 ORACLE = ROOT / "tools" / "js_oracle.js"
@@ -120,7 +120,7 @@ def check_oracle(tables, tol_pct: float = 0.005, tol_fac: float = 1e-9) -> int:
             continue
         sex = req["sex"]
         t = tables[f"USATF MLDR 2025 {sex}"]
-        from aggrade.ui import parse_time
+        from brrag.ui import parse_time
         time_s = parse_time(req["time"])
         blank = str(got.get("afac", "")).strip() == ""
         try:

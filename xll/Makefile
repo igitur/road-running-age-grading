@@ -91,7 +91,7 @@ verify: $(NAME).xll
 # ------------------------------------------------------------ sample book --
 sample: examples/age-grading-sample.xlsx
 
-examples/age-grading-sample.xlsx: examples/build_sample_workbook.py ../aggrade/core.py ../data/mldr_road.json
+examples/age-grading-sample.xlsx: examples/build_sample_workbook.py ../brrag/core.py ../data/mldr_road.json
 	python3 examples/build_sample_workbook.py
 
 # ------------------------------------------------------- generated sources --
@@ -102,7 +102,7 @@ src/ag_tables_generated.h: ../data/mldr_road.json tools/gen_tables.py
 
 expectations: test/expected.h
 
-test/expected.h: ../aggrade/core.py tools/gen_expectations.py
+test/expected.h: ../brrag/core.py tools/gen_expectations.py
 	python3 tools/gen_expectations.py
 
 # The shim dir fixes the library's capitalised includes (Windows.h, WinBase.h,

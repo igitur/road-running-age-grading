@@ -164,7 +164,7 @@ F,10 k,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176
 
 A 55-year-old man running 45:00 scores `100 × (1584/0.8937) / 2700 = 65.6%` on
 this table, against `68.9%` on the published one — the trophy is harder to win,
-which is the point. (Both figures computed: `aggrade 45:00 --age 55 --sex M
+which is the point. (Both figures computed: `brrag 45:00 --age 55 --sex M
 --distance 10k` gives the second.)
 
 The same mechanism points the other way if a club wants its own standard: put a

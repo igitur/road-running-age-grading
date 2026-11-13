@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""aggrade — grade a road-running performance by sex, age and distance.
+"""brrag — grade a road-running performance by sex, age and distance.
 
 Examples
 --------
-    aggrade 40:00 --age 40 --sex M --distance 10k
-    aggrade 2:30:00 --age 75 --sex M --event Marathon --json
-    aggrade 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
-    aggrade --list-events --sex F
+    brrag 40:00 --age 40 --sex M --distance 10k
+    brrag 2:30:00 --age 75 --sex M --event Marathon --json
+    brrag 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
+    brrag --list-events --sex F
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from aggrade import __version__  # noqa: E402
-from aggrade.core import DEFAULT_DATA, OutOfRange, load_tables  # noqa: E402
-from aggrade.ui import format_time, parse_time, ui_percent  # noqa: E402
+from brrag import __version__  # noqa: E402
+from brrag.core import DEFAULT_DATA, OutOfRange, load_tables  # noqa: E402
+from brrag.ui import format_time, parse_time, ui_percent  # noqa: E402
 
 MILE_KM = 1.609344
 _KM_UNITS = {"k", "km", "kilometer", "kilometers", "kilometre", "kilometres"}
@@ -66,13 +66,13 @@ def parse_distance(text: str) -> float:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="aggrade",
+        prog="brrag",
         description="Age-grade a road-running performance (USATF MLDR tables).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     ap.add_argument("--version", action="version",
-                    version=f"aggrade {__version__}")
+                    version=f"brrag {__version__}")
     ap.add_argument("time", nargs="?", help="performance: h:mm:ss, mm:ss or seconds")
     ap.add_argument("--age", type=float, help="age in years at race day (fractional ok)")
     ap.add_argument("--sex", "-s", default="M", choices=["M", "F", "m", "f"],

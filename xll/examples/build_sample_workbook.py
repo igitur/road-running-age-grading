@@ -2,7 +2,7 @@
 """build_sample_workbook.py — generate the sample workbook for road_running_age_grading.xll.
 
 Every expected value in the workbook is computed here from the verified Python
-implementation in aggrade/ (itself checked against the published calculator by
+implementation in brrag/ (itself checked against the published calculator by
 tools/verify.py), so no number is hand-typed and the workbook can be rebuilt
 after any change to the tables:
 
@@ -24,8 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from aggrade.cli import parse_distance as label_km        # noqa: E402
-from aggrade.core import load_tables                      # noqa: E402
+from brrag.cli import parse_distance as label_km        # noqa: E402
+from brrag.core import load_tables                      # noqa: E402
 from openpyxl import Workbook, load_workbook              # noqa: E402
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # noqa: E402
 from openpyxl.worksheet.properties import PageSetupProperties  # noqa: E402

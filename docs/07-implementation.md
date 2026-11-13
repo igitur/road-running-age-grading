@@ -36,7 +36,7 @@ Invariants worth asserting on load:
 * the standard of the first event (1 mile) is the smallest — sanity check that
   the file has not been scrambled
 
-`aggrade/core.py:Tables.__init__` checks the length invariant and nothing else;
+`brrag/core.py:Tables.__init__` checks the length invariant and nothing else;
 add the rest if you are loading untrusted files.
 
 Four editions are included (2025, 2020, 2015, 2010) because the calculator page
@@ -47,7 +47,7 @@ standards.
 ## Python API
 
 ```python
-from aggrade import table, format_time, parse_time, ui_percent
+from brrag import table, format_time, parse_time, ui_percent
 
 t = table(2025, "M")                      # Tables object
 g = t.grade("M", 40, parse_time("40:00"), dist_km=10)
@@ -76,10 +76,10 @@ rather than an accident:
 ## CLI
 
 ```console
-$ aggrade 40:00 --age 40 --sex M --distance 10k
-$ aggrade 2:30:00 --age 60 --sex M --event Marathon --json
-$ aggrade 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
-$ aggrade --list-events --sex F
+$ brrag 40:00 --age 40 --sex M --distance 10k
+$ brrag 2:30:00 --age 60 --sex M --event Marathon --json
+$ brrag 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
+$ brrag --list-events --sex F
 ```
 
 Distances accept `mile, 5k, 6k, 4mi, 8k, 5mi, 10k, 7mi, 12k, 15k, 10mi, 20k,

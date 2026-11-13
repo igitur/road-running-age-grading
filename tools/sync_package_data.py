@@ -2,8 +2,8 @@
 """Copy the table data into the package, so a wheel carries its own tables.
 
 `data/mldr_road.json` is the artefact `tools/extract_tables.py` derives from the
-published calculator page. `aggrade/data/mldr_road.json` is the same bytes, placed
-where `aggrade.core.DEFAULT_DATA` looks first when the package is installed rather
+published calculator page. `brrag/data/mldr_road.json` is the same bytes, placed
+where `brrag.core.DEFAULT_DATA` looks first when the package is installed rather
 than run from a checkout.
 
     tools/sync_package_data.py          # copy
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "data" / "mldr_road.json"
-TARGET = ROOT / "aggrade" / "data" / "mldr_road.json"
+TARGET = ROOT / "brrag" / "data" / "mldr_road.json"
 
 
 def main(argv: list[str]) -> int:

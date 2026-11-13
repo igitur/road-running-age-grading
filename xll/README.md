@@ -24,7 +24,7 @@ One formula, 180 age grades, spilled down the column.
 - Not a fork of the tables: the numbers are the published ones, extracted from
   the same source as the Python implementation in this repo and verified against
   it (462 ground-truth cases, see [Testing](#testing)).
-- Not a replacement for `aggrade` in scripts: the CLI and the Python library in
+- Not a replacement for `brrag` in scripts: the CLI and the Python library in
   the parent directory do the same arithmetic for pipelines.
 
 ## Functions
@@ -117,7 +117,7 @@ overlap an array's output area, no two merges may overlap, and nothing may sit i
 a cell a formula is meant to spill onto. `--check` runs the same validation on
 the committed file.
 
-Every number in it is computed by `aggrade` at build time — nothing is typed by
+Every number in it is computed by `brrag` at build time — nothing is typed by
 hand, so it can be rebuilt after any change to the tables. The custom-table
 expected values were additionally checked against the C++ itself
 (`test_main.cpp`), and the published-table values against the calculator's own
@@ -215,9 +215,9 @@ src/ag_api.{h,cpp}             worksheet-facing API: vectors, validation
 src/road_running_age_grading.cpp        the only Excel-aware file: XLOPER12 <-> cells
 src/ag_tables_generated.h      the four published editions, generated (147 kB)
 test/test_main.cpp             native test suite
-test/expected.h                ground truth from aggrade, generated
+test/expected.h                ground truth from brrag, generated
 tools/gen_tables.py            data/mldr_road.json -> ag_tables_generated.h
-tools/gen_expectations.py      aggrade -> test/expected.h
+tools/gen_expectations.py      brrag -> test/expected.h
 tools/apply-xll-patches.sh     recreate the mingw-portable xll library
 patches/xll-mingw-portability.patch   the 7-file framework patch
 road_running_age_grading.def            exported symbols (checked against the PE table by make verify)

@@ -1,4 +1,4 @@
-# Dependencies for the tools/ scripts only. The aggrade library itself imports
+# Dependencies for the tools/ scripts only. The brrag library itself imports
 # nothing outside the standard library.
 #
 #   uv venv --python 3.12 .venv

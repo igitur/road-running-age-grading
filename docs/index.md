@@ -1,5 +1,8 @@
 # Documentation index
 
+**BRRAG — Botha's Road Running Age Grading.** The package and CLI are `brrag`;
+the repository keeps the name `road-running-age-grading`.
+
 A wiki-shaped documentation set for road-running age grading on the USATF MLDR
 2025 tables. Written as Markdown in the repo so it versions with the data and
 the code, and so every claim can be re-derived and re-checked.
@@ -30,7 +33,7 @@ the code, and so every claim can be re-derived and re-checked.
   `S_age`, an *age grade* `P` (in percent).
 * `M` / `F` for sex, `0` = female and `1` = male in the original VBA.
 * Numeric claims are reproducible: `tools/verify.py` regenerates the checks, and
-  every worked example in these pages was produced by `aggrade` itself.
+  every worked example in these pages was produced by `brrag` itself.
 
 ## Maintenance rule for these documents
 

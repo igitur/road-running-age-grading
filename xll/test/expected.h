@@ -1,6 +1,6 @@
 // GENERATED FILE — do not edit.
 // Produced by xll/tools/gen_expectations.py from the verified Python
-// implementation (aggrade). Regenerate with:  make -C xll expectations
+// implementation (brrag). Regenerate with:  make -C xll expectations
 #pragma once
 
 namespace ag::test {
