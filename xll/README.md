@@ -81,8 +81,13 @@ $ make sample                 # regenerate from the verified implementation
 $ python3 examples/build_sample_workbook.py --check   # CI: is it stale?
 ```
 
-Multi-value functions are ordinary formulas that spill as Excel 365 dynamic
-arrays — no Ctrl+Shift+Enter, no curly braces. The build refuses to write a file
+Multi-value functions spill as Excel 365 dynamic arrays — no Ctrl+Shift+Enter,
+no curly braces. openpyxl cannot express that on its own, so the build
+post-processes the saved file the way Excel itself does it: each anchor becomes a
+one-cell array formula marked `cm="1"`, backed by an `xl/metadata.xml` part
+declaring `XLDAPR`/`fDynamic="1"`. Without that mark Excel reads a bare formula as
+pre-365 and rewrites it to `=@AG.GRADE(…)`, which spills nothing. The workbook
+also sets `calcMode="auto"`, `fullCalcOnLoad` and `forceFullCalc`. The build refuses to write a file
 that would make Excel repair itself or show `#SPILL!`: no merged range may
 overlap an array's output area, no two merges may overlap, and nothing may sit in
 a cell a formula is meant to spill onto. `--check` runs the same validation on

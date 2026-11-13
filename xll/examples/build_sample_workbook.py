@@ -192,7 +192,12 @@ def live(ws, ref: str, formula: str, fmt: str | None = None,
     says how much area to pre-format. Nothing is written into the cells the
     spill will cover — a spilled value lands on an empty cell.
     """
-    ws[ref] = formula
+    # A dynamic array formula is stored as a one-cell array formula (ref = the
+    # anchor itself) carrying the XLDAPR cell metadata added in postprocess().
+    # Excel shows the same tag without that metadata as a legacy Ctrl+Shift+
+    # Enter formula (curly braces, no spilling) and rewrites a bare formula to
+    # "=@AG.GRADE(...)" - implicit intersection - which spills nothing.
+    ws[ref] = ArrayFormula(ref=ref, text=formula)
     if ref_range:
         _SPILLS.append((ws.title, ref, ref_range))
     block = ws[ref_range] if ref_range else ((ws[ref],),)
@@ -1256,6 +1261,109 @@ def guard_verdicts(wb) -> None:
                     c.value = f'=IFERROR({inner},"")'
 
 
+
+# ---------------------------------------------------------------------------
+# dynamic-array metadata
+#
+# openpyxl has no concept of Excel's dynamic arrays. What Excel writes for one
+# is: the cell as a one-cell array formula, marked `cm="1"`, plus a metadata
+# part declaring XLDAPR with fDynamic="1". Without the mark Excel treats the
+# formula as pre-365 and inserts an implicit-intersection "@", so nothing
+# spills. The three parts below are copied verbatim from a workbook Excel saved
+# itself (a dynamic array cell there reads:
+#   <c r="B12" cm="1" s="7"><f t="array" ref="B12">...</f></c>).
+# ---------------------------------------------------------------------------
+METADATA_XML = (
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '<metadata xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    ' xmlns:xda="http://schemas.microsoft.com/office/spreadsheetml/2017/dynamicarray">'
+    '<metadataTypes count="1">'
+    '<metadataType name="XLDAPR" minSupportedVersion="120000" copy="1" pasteAll="1"'
+    ' pasteValues="1" merge="1" splitFirst="1" rowColShift="1" clearFormats="1"'
+    ' clearComments="1" assign="1" coerce="1" cellMeta="1"/>'
+    '</metadataTypes>'
+    '<futureMetadata name="XLDAPR" count="1"><bk><extLst>'
+    '<ext uri="{bdbb8cdc-fa1e-496e-a857-3c3f30c029c3}">'
+    '<xda:dynamicArrayProperties fDynamic="1" fCollapsed="0"/>'
+    '</ext></extLst></bk></futureMetadata>'
+    '<cellMetadata count="1"><bk><rc t="1" v="0"/></bk></cellMetadata>'
+    '</metadata>'
+)
+METADATA_CT = ('<Override PartName="/xl/metadata.xml" ContentType="application/'
+               'vnd.openxmlformats-officedocument.spreadsheetml.sheetMetadata+xml"/>')
+METADATA_REL = ('<Relationship Id="rId{id}" Type="http://schemas.openxmlformats.org/'
+                'officeDocument/2006/relationships/sheetMetadata" '
+                'Target="metadata.xml"/>')
+
+
+def postprocess(path: Path) -> None:
+    """Add the dynamic-array metadata part and mark each spill anchor `cm="1"`."""
+    import re
+    import zipfile
+
+    anchors: dict[str, set[str]] = {}
+    for sheet, anchor, _area in _SPILLS:
+        anchors.setdefault(sheet, set()).add(anchor)
+
+    # worksheet part name -> sheet title, in workbook order
+    part_of: dict[str, str] = {}
+    with zipfile.ZipFile(path) as z:
+        order = re.findall(r'<sheet name="([^"]+)"',
+                           z.read("xl/workbook.xml").decode("utf-8"))
+        types = z.read("[Content_Types].xml").decode("utf-8")
+        rels = z.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+        parts = {n: z.read(n) for n in z.namelist()}
+    for i, name in enumerate(order):
+        part_of[f"xl/worksheets/sheet{i + 1}.xml"] = (
+            name.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"))
+
+    if "metadata.xml" not in types:
+        types = types.replace("</Types>", METADATA_CT + "</Types>")
+    if "sheetMetadata" not in rels:
+        # Excel numbers its relationships rId1..rIdN; a non-numeric id is legal
+        # XML but not what Excel writes, and this file has been repaired once
+        # already, so match the convention exactly.
+        used = [int(n) for n in re.findall(r'Id="rId(\d+)"', rels)]
+        rel = METADATA_REL.format(id=max(used) + 1 if used else 1)
+        rels = rels.replace("</Relationships>", rel + "</Relationships>")
+
+    marked = 0
+    for part, title in part_of.items():
+        if part not in parts or title not in anchors:
+            continue
+        xml = parts[part].decode("utf-8")
+        for anchor in anchors[title]:
+            pattern = re.compile(r'<c r="' + anchor + r'"((?:\s+[a-z]+="[^"]*")*)\s*>')
+            def add_cm(m, _a=anchor):
+                nonlocal marked
+                if "cm=" in m.group(1):
+                    return m.group(0)
+                marked += 1
+                return f'<c r="{_a}" cm="1"{m.group(1)}>'
+            xml, n = pattern.subn(add_cm, xml, count=1)
+            if n == 0:
+                raise SystemExit(f"postprocess: could not find cell {title}!{anchor}")
+        parts[part] = xml.encode("utf-8")
+    parts["[Content_Types].xml"] = types.encode("utf-8")
+    parts["xl/_rels/workbook.xml.rels"] = rels.encode("utf-8")
+    parts["xl/metadata.xml"] = METADATA_XML.encode("utf-8")
+
+    want = sum(len(v) for v in anchors.values())
+    if marked != want:
+        raise SystemExit(f"postprocess: marked {marked} cells, expected {want}")
+
+    # rewrite deterministically: fixed order and timestamps, so --check can
+    # compare byte for byte
+    tmp = path.with_suffix(".meta.tmp")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in sorted(parts):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o600 << 16
+            z.writestr(info, parts[name])
+    tmp.replace(path)
+
+
 # ---------------------------------------------------------------------------
 def build(path: Path) -> None:
     wb = Workbook()
@@ -1271,7 +1379,9 @@ def build(path: Path) -> None:
 
     # There are no cached results in this file - every value comes from the
     # add-in - so Excel must recalculate on open.
+    wb.calculation.calcMode = "auto"          # not manual, not autoNoTable
     wb.calculation.fullCalcOnLoad = True
+    wb.calculation.forceFullCalc = True
 
     problems = validate(wb)
     if problems:
@@ -1289,6 +1399,7 @@ def build(path: Path) -> None:
         ws.page_setup.fitToHeight = 0
         ws.print_options.horizontalCentered = True
     wb.save(path)
+    postprocess(path)
 
 
 def main() -> int:
