@@ -170,8 +170,8 @@ GPLv3 with the Runtime Library Exception, and the verification inputs are not
 ours to license. [THIRD-PARTY.md](THIRD-PARTY.md) lists every one of them with the
 evidence.
 
-Tables compiled by **Alan Jones** (alanjones@grests.com) with single-age bests
-by **Tom Bernhard**; approved by the USATF MLDR Council. Calculator by
+Tables compiled by **Alan Jones** with single-age bests by **Tom Bernhard**;
+approved by the USATF MLDR Council. Calculator by
 **Howard Grubb** (howardgrubb.co.uk). Upstream repository:
 <https://github.com/AlanLyttonJones/Age-Grade-Tables>. Cite the upstream tables,
 not this repo, when publishing results.

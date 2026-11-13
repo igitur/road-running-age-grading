@@ -30,9 +30,9 @@ This licence covers the code in this repository: the `brrag/` package, the
 It does NOT cover the age-grading tables or the source artefacts. Those are the
 work of others:
 
-  * age-grade factors and age standards — compiled by Alan Jones
-    (alanjones@grests.com) with single-age bests by Tom Bernhard, approved by
-    the Masters Long Distance Running Council of USA Track & Field.
+  * age-grade factors and age standards — compiled by Alan Jones with
+    single-age bests by Tom Bernhard, approved by the Masters Long Distance
+    Running Council of USA Track & Field.
     Upstream: https://github.com/AlanLyttonJones/Age-Grade-Tables
   * the calculator page (`page.html`) and the factors workbook
     (`MLDRRoadFactors2025.xlsm`) — Howard Grubb,

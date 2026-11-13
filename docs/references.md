@@ -53,8 +53,8 @@ and the reference given in the factors workbook's VBA header.
 
 | Who | For |
 | --- | --- |
-| Alan Jones — alanjones@grests.com | the tables, the fitting, corrections |
-| Tom Bernhard — tlbernhard2@gmail.com | single-age bests |
+| Alan Jones | the tables, the fitting, corrections |
+| Tom Bernhard | single-age bests |
 | Howard Grubb — howardgrubb.co.uk | the calculator |
 
 ## In this repository

@@ -19,7 +19,7 @@ picture in one place instead of auditing it.
 ## Credit
 
 The age factors are not mine. They are compiled by **Alan Jones**
-(alanjones@grests.com) with single-age bests by **Tom Bernhard**, approved by the
+with single-age bests by **Tom Bernhard**, approved by the
 **USATF Masters Long Distance Running** committee; the calculator they ship with
 is **Howard Grubb's** (howardgrubb.co.uk). If you publish a percentage, quote the
 table year and credit the tables to their authors rather than to this repository.
