@@ -1094,33 +1094,64 @@ def sheet_times(wb: Workbook) -> None:
               "Both directions are on this sheet.")
 
     header_row(ws, 4, ["Athlete / call", "stored as", "shown as", "seconds", "note"])
+    # Three rows, because there are two input kinds and one trap. The trap is the
+    # row that used to be here mislabelled: a plain number wearing a time format
+    # shows 57120:00:00 (Excel reads 2380 as DAYS) while the add-in still receives
+    # the number 2380 and grades 2380 seconds.
     rows = [
-        ("Time cell", serial("39:40"), "0:39:40", 2380,
-         "A time value: format [h]:mm:ss so hours do not wrap at 24. Multiply by 86400 for seconds."),
-        ("same as seconds", 2380, "2380", 2380,
-         "A plain number of 1 or more — accepted directly, no formatting needed."),
+        ("Time cell (a day fraction)", serial("39:40"), TIME_FMT, TIME_FMT, "*86400",
+         "0.0275 of a day. Format [h]:mm:ss so hours do not wrap at 24, and multiply by 86400 "
+         "to get the seconds the add-in works in."),
+        ("Seconds as a plain number", 2380, "0", "0", "",
+         "1 or more is taken as seconds. No time format, no x86400 - the number already is the "
+         "answer, and the add-in reads it directly."),
+        ("...the same number, time-formatted", 2380, "0", TIME_FMT, "",
+         "Look: Excel shows 57120:00:00, because a bare number in a time format is a number of "
+         "DAYS. Formatting changes what you see, not what is stored - the add-in still receives "
+         "2380 and grades 2380 s. This is why the seconds column here is not x 86400."),
     ]
-    for i, (label, stored, shown, seconds, why) in enumerate(rows):
+    for i, (label, stored, in_fmt, show_fmt, scale, why) in enumerate(rows):
         row = 5 + i
         ws[f"A{row}"].value = label
         ws[f"A{row}"].font, ws[f"A{row}"].border, ws[f"A{row}"].alignment = F_BODY, BOX, LEFT
         c = ws[f"B{row}"]
         c.value = stored
-        c.number_format = TIME_FMT if stored < 1 else "0"
+        c.number_format = in_fmt
         c.fill, c.border, c.alignment, c.font = FILL_IN, BOX, CENTER, F_BODY
         c = ws[f"C{row}"]
         c.value = f"=B{row}"
-        c.number_format = TIME_FMT
+        c.number_format = show_fmt
         c.fill, c.border, c.alignment, c.font = FILL_LIVE, BOX, CENTER, F_MONO
         c = ws[f"D{row}"]
-        c.value = f"=B{row}*86400"
+        c.value = f"=B{row}{scale}"
         c.number_format = "0.0"
         c.fill, c.border, c.alignment, c.font = FILL_LIVE, BOX, CENTER, F_MONO
         ws[f"E{row}"].value = why
         ws[f"E{row}"].font, ws[f"E{row}"].alignment = F_BODY, LEFT_WRAP
+        ws.row_dimensions[row].height = 58 if i == 2 else 30
+
+    # what the add-in actually makes of each of those three cells
+    subhead(ws, 9, "What the add-in does with each of them")
+    header_row(ws, 10, ["Call", "live graded time", "expected", "check", "note"])
+    for i, why in enumerate([
+        "A day fraction below 1: read as an Excel time value.",
+        "A number of 1 or more: read as seconds. Same 2380 s as the row above.",
+        "A bare number in a time format: still the number 2380, so still 2380 s. The display is a "
+        "red herring, not a different input.",
+    ]):
+        row = 11 + i
+        src = 5 + i
+        show_call(ws, f"A{row}", f'=AG.GRADE("M",40,10,B{src},"40:00")')
+        live(ws, f"B{row}", f'=AG.GRADE("M",40,10,B{src},"40:00")', PCT_FMT)
+        expected(ws, f"C{row}", round(grade("M", 40, 10.0, 2380).percent, 4), PCT_FMT)
+        c = ws[f"D{row}"]
+        c.value = f'=IF(ABS(B{row}-C{row})<0.01,"OK","MISMATCH")'
+        c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
+        ws[f"E{row}"].value = why
+        ws[f"E{row}"].font, ws[f"E{row}"].alignment = F_BODY, LEFT_WRAP
         ws.row_dimensions[row].height = 30
 
-    r = 9
+    r = 16
     subhead(ws, r, "Round-tripping: grade a run, then ask what time would score that grade")
     header_row(ws, r + 1, ["Step", "live", "expected", "check", "note"])
     row = r + 2
@@ -1131,7 +1162,8 @@ def sheet_times(wb: Workbook) -> None:
          "The grade of the actual run."),
         ("2. time that scores it",
          '=AG.TIMEFORPCT("M",40,10,"&percent&")', 2400 / 86400.0, TIME_FMT,
-         "Feeding the percentage back in must return the original time — the inverse is exact."),
+         "Feeding the percentage back in returns the original time to within 0.02 s: the "
+         "percentage carries four decimals, and that is the limit of the round trip."),
         ("3. graded time for 40:00",
          '=AG.GRADEDTIME("M",40,10,"40:00")', g.age_graded_s / 86400.0, TIME_FMT,
          "The same run in open-class terms: 38:32.6."),
