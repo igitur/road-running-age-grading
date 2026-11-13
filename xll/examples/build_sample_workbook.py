@@ -241,12 +241,18 @@ def show_call(ws, ref: str, text: str) -> None:
 
     Assigning a string that starts with "=" makes openpyxl write a formula, so a
     label like =AG.FACTOR("M",B6:B9,10) would actually run - and with the add-in
-    loaded it would spill over the rows below it. Forcing the string data type
-    stores the text, which is what Excel does for an apostrophe-prefixed cell.
+    loaded it would spill over the rows below it.
+
+    Storing it as a string is not enough on its own: Excel and LibreOffice
+    re-interpret a *string* cell whose text starts with "=" as a formula when they
+    open the file. The marker that stops that is the quote prefix - the same flag
+    Excel sets when you type a leading apostrophe, which is why the apostrophe
+    does not appear in the cell but does in the formula bar.
     """
     c = ws[ref]
     c.value = text
     c.data_type = "s"
+    c.quotePrefix = True
     c.font, c.border, c.alignment = F_MONO, BOX, LEFT
 
 
@@ -1322,6 +1328,16 @@ def validate(wb) -> list[str]:
                 if v is not None and not (isinstance(v, str) and not v.strip()):
                     problems.append(f"{ws.title}: {anchor} spills over {cell}, "
                                     f"which holds {v!r} -> #SPILL! in Excel")
+
+        # text that looks like a formula must carry the quote prefix, or Excel
+        # converts it back into a formula when the file opens
+        for row in ws.iter_rows():
+            for c in row:
+                if c.data_type == "s" and isinstance(c.value, str) and c.value.startswith("="):
+                    if not c.quotePrefix:
+                        problems.append(
+                            f"{ws.title}!{c.coordinate}: text starts with \"=\" but has no "
+                            f"quotePrefix - Excel will turn it into a formula")
 
         # an AG.* formula outside live() is a label that will actually run
         for row in ws.iter_rows():
