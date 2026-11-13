@@ -220,8 +220,9 @@ def check_standards(tables, tol_s: float = 0.51) -> int:
     for age, items in anomalies.items():
         print(f"  KNOWN ANOMALY age {age}: {len(items)} events disagree with the "
               f"factor sheet (documented; see docs/05-provenance.md)")
+    total_anom = sum(len(v) for v in anomalies.values())
     print(f"C. standards file: {checked} cells, {bad} mismatches, "
-          f"{sum(len(v) for v in anomalies.values())} known age-5 anomalies")
+          f"{total_anom} known anomalies")
     return bad
 
 

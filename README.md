@@ -1,5 +1,7 @@
 # Age grading — USATF MLDR road tables
 
+[![check](https://github.com/igitur/road-running-age-grading/actions/workflows/check.yml/badge.svg)](https://github.com/igitur/road-running-age-grading/actions/workflows/check.yml)
+
 Reference documentation and a verified implementation of **road-running age
 grading** on the USATF Masters Long Distance Running (MLDR) 2025 tables.
 
