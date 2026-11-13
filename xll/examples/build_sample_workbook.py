@@ -361,7 +361,9 @@ def sheet_start(wb: Workbook) -> None:
                             "with OpenStd optional, and a sidecar CSV."),
         ("6 Times & formats", "Seconds, Excel time values and [h]:mm:ss; the inverse function; "
                               "round-tripping a percentage."),
-        ("7 Reference", "Distances the tables cover, argument rules, and what every error means."),
+        ("7 Functions", "All twelve functions: arguments, what each returns, the shape it "
+                        "returns it in, and which sheet shows it working."),
+        ("8 Reference", "Distances the tables cover, argument rules, and what every error means."),
     ]
     for name, what in index:
         r += 1
@@ -511,7 +513,7 @@ def sheet_squad(wb: Workbook) -> None:
 # ---------------------------------------------------------------------------
 # sheet 2 — every function, one call at a time
 # ---------------------------------------------------------------------------
-def sheet_functions(wb: Workbook) -> None:
+def sheet_one_call(wb: Workbook) -> None:
     ws = wb.create_sheet("2 One call")
     widths(ws, {"A": 20, "B": 34, "C": 14, "D": 13, "E": 11, "F": 14, "G": 11,
                 "H": 44, "I": 14, "J": 14, "K": 14, "L": 14, "M": 14})
@@ -1196,10 +1198,192 @@ def sheet_times(wb: Workbook) -> None:
 
 
 # ---------------------------------------------------------------------------
-# sheet 7 — reference
+# sheet 7 — function reference
+#
+# One row per function, and the list is checked against the add-in's own
+# registrations at build time (see check_function_docs), so the page cannot drift
+# from the binary that ships beside it.
+# ---------------------------------------------------------------------------
+FUNCTIONS = [
+    ("RRAG.GRADE", "(sex, age, distance, time, [table])",
+     "The age grade in percent: 100 x the open standard / (time x factor).",
+     "Number, 2 dp. 100 = the world-standard mark for that exact sex and age; above 100 "
+     "is a genuine outlier, not an error.",
+     "1x1 with scalar arguments; a column in gives a column out.",
+     "1 Squad, 2 One call, 4 Vector rules"),
+    ("RRAG.GRADEDTIME", "(sex, age, distance, time, [table])",
+     "The run converted to open-class age: time x factor.",
+     "Excel time value - format the column [h]:mm:ss, or multiply by 86400 for seconds.",
+     "Same shape as the inputs.",
+     "1 Squad, 6 Times & formats"),
+    ("RRAG.FACTOR", "(sex, age, distance, [table])",
+     "The multiplier itself, straight from the table.",
+     "Number 0 < f <= 1, 4 dp. Older age or longer distance means a smaller factor.",
+     "Same shape as the inputs.",
+     "1 Squad, 4 Vector rules"),
+    ("RRAG.STANDARD", "(sex, age, distance, [table])",
+     "The open standard for the distance: the world-class mark with no age adjustment.",
+     "Excel time value. Age is accepted and ignored, purely so the signature matches its "
+     "siblings.",
+     "Same shape as the inputs.",
+     "1 Squad, 2 One call"),
+    ("RRAG.TIMEFORPCT", "(sex, age, distance, percent, [table])",
+     "The inverse: the time that would score the percentage you ask for.",
+     "Excel time value. This is the published calculator's Result button.",
+     "Same shape as the inputs.",
+     "2 One call, 6 Times & formats"),
+    ("RRAG.BLOCK", "(sex, age, distance, time, [table])",
+     "All five numbers for a squad in one call: factor, open standard, age standard, "
+     "age-graded time, age grade.",
+     "Five columns per input row, in that order. Row labels come from your own columns.",
+     "n x 5 - reserve five columns.",
+     "1 Squad"),
+    ("RRAG.TABLES", "()",
+     "Which editions this build can grade with.",
+     "A column of years, newest first; pass one as the fifth argument of any grading "
+     "function.",
+     "n x 1 - it returns a COLUMN, so leave rows below it free.",
+     "2 One call"),
+    ("RRAG.TABLEINFO", "([table])",
+     "Describe a table: year, how many distances, how many ages, how many sexes.",
+     "A 1x4 row of numbers. TRANSPOSE() it if you want it standing up.",
+     "1 x 4.",
+     "2 One call"),
+    ("RRAG.CACHEINFO", "()",
+     "The cache counters: built-in editions, loaded CSVs, custom ranges held, hits, "
+     "misses, capacity.",
+     "A 1x6 row of numbers - no expected values anywhere, they depend on what the "
+     "session has done.",
+     "1 x 6.",
+     "2 One call"),
+    ("RRAG.CACHECLEAR", "()",
+     "Drop cached CSV and custom-range tables, after editing a table file.",
+     "1. Ad hoc ranges are keyed by a hash of their contents, so they cannot go stale; "
+     "only CSVs need this.",
+     "1 x 1.",
+     "2 One call (shown, not live)"),
+    ("RRAG.LASTERROR", "()",
+     "The reason the most recent call failed, in words.",
+     "Text: 'no error', or which argument and which row refused. The first thing to "
+     "reach for when a column fills with #NUM!.",
+     "1 x 1.",
+     "2 One call, 4 Vector rules"),
+    ("RRAG.VERSION", "()",
+     "What is loaded, and how many editions are compiled in.",
+     "Text, e.g. 'aggrade-xll 2025.1 (4 built-in editions)'.",
+     "1 x 1.",
+     "2 One call"),
+]
+
+ARGUMENTS = [
+    ("sex", "M, F, Male, Female, Men, Women, 1, 0. Whole words only: 'both' and 'mixed' are "
+            "refused rather than guessed at."),
+    ("age", "Age on race day, in years. 5-100 is the published grid; below 5 clamps to 5 and "
+            "above 99 clamps to 100 (a quirk of the published calculator, reproduced on "
+            "purpose). Fractional ages interpolate."),
+    ("distance", "A number of km, or a number with a unit: 10k, 10 km, 10 kilometres, 6.2 "
+                 "miles, half marathon, marathon. Case, whitespace and hyphens are ignored. "
+                 "Outside 1.609344-200 km there is no answer."),
+    ("time", "An Excel time value, text like \"40:00\", or a number of seconds. Numbers below 1 "
+             "are read as day fractions (Excel time), 1 or more as seconds. Blank rows stay "
+             "blank rather than erroring."),
+    ("percent", "The age grade you want, in percent units: 75, not 0.75."),
+    ("table", "Optional. Omit for the newest edition, or pass 2025, 2020, 2015, 2010, "
+              "'latest', a <name>.csv in the add-in's folder, or a range holding a custom "
+              "table."),
+]
+
+
+def check_function_docs() -> None:
+    """The reference sheet must describe exactly what the add-in registers."""
+    src = Path(__file__).resolve().parent.parent / "src" / "road_running_age_grading.cpp"
+    # two return types: the numeric ones are FPX, the text ones LPOPER
+    registered = re.findall(r'Function\(XLL_[A-Z]+, "_xll_rrag_[a-z]+", "(RRAG\.[A-Z]+)"\)',
+                            src.read_text())
+    documented = [name for name, *_ in FUNCTIONS]
+    if sorted(registered) != sorted(documented):
+        raise SystemExit(
+            "function reference is out of date with the add-in:\n"
+            f"  registered but undocumented: {sorted(set(registered) - set(documented))}\n"
+            f"  documented but not registered: {sorted(set(documented) - set(registered))}")
+
+
+def sheet_function_reference(wb: Workbook) -> None:
+    ws = wb.create_sheet("7 Functions")
+    widths(ws, {"A": 20, "B": 30, "C": 46, "D": 46, "E": 24, "F": 24})
+    r = title(ws, "Every function, and what it gives you back",
+              "Twelve worksheet functions in the Road Running category. Type =RRAG. and "
+              "Excel lists them with their arguments.")
+
+    check_function_docs()
+
+    note(ws, "A4", "The six grading functions and the five diagnostics: the grading ones take "
+                   "sex, age and distance first, and each returns a number, a row or a column. "
+                   "Shape matters - a vector argument produces a vector result, so leave the "
+                   "cells it will fill free.")
+    ws.row_dimensions[4].height = 30
+
+    subhead(ws, 6, "The twelve functions")
+    header_row(ws, 7, ["Function", "Arguments", "What it does", "What you get back",
+                       "Shape", "Shown live on"])
+    for i, (name, args, what, ret, shape, seen) in enumerate(FUNCTIONS):
+        row = 8 + i
+        c = ws[f"A{row}"]
+        c.value, c.font, c.alignment, c.border = name, F_MONO, LEFT_WRAP, BOX
+        c.fill = FILL_SUB
+        for col, text in (("B", args), ("C", what), ("D", ret), ("E", shape), ("F", seen)):
+            c = ws[f"{col}{row}"]
+            c.value = text
+            c.font = F_MONO if col == "B" else F_BODY
+            c.alignment, c.border = LEFT_WRAP, BOX
+        ws.row_dimensions[row].height = 15 * max(2, len(ret) // 50 + 1, len(what) // 50 + 1)
+
+    r = 8 + len(FUNCTIONS) + 1
+    subhead(ws, r, "The arguments, once")
+    header_row(ws, r + 1, ["Argument", "What it accepts"])
+    ws.merge_cells(start_row=r + 1, start_column=2, end_row=r + 1, end_column=4)
+    for i, (arg, accept) in enumerate(ARGUMENTS):
+        row = r + 2 + i
+        c = ws[f"A{row}"]
+        c.value, c.font, c.alignment, c.border = arg, F_MONO, LEFT_WRAP, BOX
+        c.fill = FILL_SUB
+        c = ws.cell(row=row, column=2, value=accept)
+        c.font, c.alignment, c.border = F_BODY, LEFT_WRAP, BOX
+        ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
+        ws.row_dimensions[row].height = 15 * max(1, len(accept) // 96 + 1)
+
+    r = r + 2 + len(ARGUMENTS) + 1
+    subhead(ws, r, "Conventions that hold everywhere")
+    for line in [
+        "Percentages are in percent units: 68.49, not 0.6849. Times are Excel time values, so "
+        "format them [h]:mm:ss - without the brackets hours wrap at 24 and a marathon reads "
+        "as 02:11:00.",
+        "Errors are per row. One unreadable row gives #NUM! in that row only; the rest of the "
+        "column still grades. RRAG.LASTERROR() says why.",
+        "Nothing is snapped to a neighbour. A distance outside the published range, an "
+        "unknown edition or a misspelt unit fails the call rather than returning a plausible "
+        "wrong number.",
+        "The optional table argument changes the edition, never the arithmetic: 68.49% is a "
+        "2025 statement, and the same run scores differently under 2020. Publish the year "
+        "with the percentage.",
+    ]:
+        c = ws.cell(row=r + 1, column=1, value="\u2022")
+        c.font, c.alignment = F_BODY, TOP_CENTRE
+        c = ws.cell(row=r + 1, column=2, value=line)
+        c.font, c.alignment = F_BODY, LEFT_WRAP
+        ws.merge_cells(start_row=r + 1, start_column=2, end_row=r + 1, end_column=6)
+        ws.row_dimensions[r + 1].height = 15 * max(1, len(line) // 110 + 1)
+        r += 1
+
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.fitToWidth = 1
+
+
+# ---------------------------------------------------------------------------
+# sheet 8 — reference
 # ---------------------------------------------------------------------------
 def sheet_reference(wb: Workbook) -> None:
-    ws = wb.create_sheet("7 Reference")
+    ws = wb.create_sheet("8 Reference")
     widths(ws, {"A": 14, "B": 10, "C": 10, "D": 52})
     r = title(ws, "Reference", "The distances the tables cover, and the rules every call follows.")
 
@@ -1321,8 +1505,19 @@ def cell_refs(ref: str) -> set[str]:
     return out
 
 
+# The sheets the workbook must contain, in order. A builder function that is
+# shadowed (two defs with one name) or never called silently drops a sheet, and
+# the workbook still builds - so compare the manifest.
+EXPECTED_SHEETS = ["Start here", "1 Squad", "2 One call", "3 Editions",
+                   "4 Vector rules", "5 Custom tables", "6 Times & formats",
+                   "7 Functions", "8 Reference"]
+
+
 def validate(wb) -> list[str]:
     problems: list[str] = []
+    if wb.sheetnames != EXPECTED_SHEETS:
+        problems.append(f"sheet manifest mismatch: built {wb.sheetnames}, "
+                        f"expected {EXPECTED_SHEETS}")
     for ws in wb.worksheets:
         merges = []
         for rng in ws.merged_cells.ranges:
@@ -1534,11 +1729,12 @@ def build(path: Path) -> None:
     wb = Workbook()
     sheet_start(wb)
     sheet_squad(wb)
-    sheet_functions(wb)
+    sheet_one_call(wb)
     sheet_editions(wb)
     sheet_vectors(wb)
     sheet_custom(wb)
     sheet_times(wb)
+    sheet_function_reference(wb)
     sheet_reference(wb)
     guard_verdicts(wb)
 
