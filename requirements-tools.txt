@@ -5,7 +5,7 @@
 #   uv pip install --python .venv/bin/python -r requirements-tools.txt
 
 openpyxl>=3.1      # reading the published workbooks (verify.py, reproduce_curve.py)
-oletools>=0.60     # extracting the VBA from MLDRRoadFactors2025.xlsm
+oletools>=0.60.2     # extracting the VBA from MLDRRoadFactors2025.xlsm
 pypdf>=5.0         # reading the upstream methodology PDFs (notes/ dumps)
 
 # Node.js is also needed for `make verify` check B (runs the calculator's own JS).
