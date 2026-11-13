@@ -18,6 +18,7 @@ Full documentation lives with the add-in:
 | [xll/docs/functions.md](../xll/docs/functions.md) | every function, argument rules, worked examples |
 | [xll/docs/ad-hoc-tables.md](../xll/docs/ad-hoc-tables.md) | custom table formats and the alternatives rejected |
 | [xll/docs/tables-and-caching.md](../xll/docs/tables-and-caching.md) | where several tables live, and the cache |
+| [xll/docs/framework-patches.md](../xll/docs/framework-patches.md) | what had to be patched in the xll framework to build this at all |
 
 ## Design decisions worth recording here
 

@@ -26,3 +26,8 @@ EXPORTS
     xll_ag_cacheclear
     xll_ag_lasterror
     xll_ag_version
+    ; The framework registers its own XLL.ALERT.LEVEL diagnostic. Its symbol
+    ; relies on MSVC's #pragma XLLEXPORT, which mingw ignores, so xlAutoOpen
+    ; would fail to register it -- and xlAutoOpen returns FALSE on any failed
+    ; registration, which stops Excel loading the add-in at all. Export it.
+    xll_alert_level_

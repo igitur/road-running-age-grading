@@ -17,7 +17,7 @@ the code, and so every claim can be re-derived and re-checked.
 | 07 | [Implementing it](07-implementation.md) | This repo's API and CLI; a porting guide with the data format, plus what to get wrong and how to avoid it. |
 | 08 | [Validation](08-validation.md) | Three independent checks (exact grid, JavaScript oracle, standards cross-check), their results, and how to reproduce them. |
 | 09 | [History and review process](09-history.md) | 1989 → 2025 revisions, what changed in 2025 and why, and the checklist for producing the next set. |
-| 10 | [The Excel add-in](10-excel-addin.md) | Grading whole squads in Excel: columns instead of single values, four editions, custom tables, caching, and what is verified. |
+| 10 | [The Excel add-in](10-excel-addin.md) | Grading whole squads in Excel: columns instead of single values, four editions, custom tables, caching, and what is verified. Includes [the framework patch report](../xll/docs/framework-patches.md). |
 | — | [Glossary](glossary.md) | Terms, symbols and the names different tools use for the same thing. |
 | — | [References](references.md) | Primary sources, papers, upstream repository, contacts. |
 

@@ -76,7 +76,14 @@ excel4_compat.o: excel4_compat.cpp
 verify: $(NAME).xll
 	@echo "--- exports (all xll_ag_* plus the Excel entry points) ---"
 	@x86_64-w64-mingw32-objdump -p $(NAME).xll | awk '/Export Tables/,0' \
-	  | grep -oE 'xll_ag_[a-z]+|xlAuto[A-Za-z0-9]+|XLCallVer' | sort -u
+	  | grep -oE 'xll_ag_[a-z]+|xlAuto[A-Za-z0-9]+|XLCallVer|xll_alert_level_' | sort -u
+	@echo "--- every symbol named in $(NAME).def must actually be exported ---"
+	@x86_64-w64-mingw32-objdump -p $(NAME).xll \
+	  | sed -n '/Ordinal\/Name Pointer/,/^$$/p' | awk '{print $$NF}' > .exports.tmp
+	@missing=0; for sym in $$(grep -E '^ +[A-Za-z_]' $(NAME).def | tr -d '\r' | awk '{print $$1}'); do \
+	  grep -qx "$$sym" .exports.tmp || { echo "  MISSING EXPORT: $$sym"; missing=1; }; \
+	done; rm -f .exports.tmp; \
+	if [ $$missing -eq 0 ]; then echo "  all .def symbols exported"; else exit 1; fi
 	@echo "--- imports (must be system DLLs only) ---"
 	@x86_64-w64-mingw32-objdump -p $(NAME).xll | awk '/DLL Name/{print $$3}' | sort -u
 

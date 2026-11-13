@@ -1,0 +1,161 @@
+diff --git a/xll/args.h b/xll/args.h
+index 7b726cf..860d703 100644
+--- a/xll/args.h
++++ b/xll/args.h
+@@ -113,7 +113,19 @@ namespace xll {
+ 		}
+ 		Args& Arguments(const std::vector<Arg>& args)
+ 		{
+-			return Arguments(std::initializer_list<Arg>(&args[0], &args[0] + args.size()));
++			const char* comma = "";
++			for (const auto& arg : args) {
++				key("typeText") &= arg.type;
++				key("argumentType").push_back(OPER(arg.type));
++				key("argumentName").push_back(OPER(arg.name));
++				key("argumentHelp").push_back(OPER(arg.help));
++				key("argumentDefault").push_back(OPER(arg.init));
++				key("argumentText") &= comma;
++				key("argumentText") &= arg.name;
++				comma = ", ";
++			}
++
++			return *this;
+ 		}
+ 
+ 		Args& Uncalced()
+diff --git a/xll/error.cpp b/xll/error.cpp
+index a781246..2b6bedb 100644
+--- a/xll/error.cpp
++++ b/xll/error.cpp
+@@ -84,7 +84,7 @@ XLL_CONST(WORD, XLL_ALERT_INFO, XLL_ALERT_INFO,
+ 	"ALERT.LEVEL flag for information[4].", "XLL", "")
+ 
+ AddIn xai_alert_level(
+-	Function(XLL_WORD, "xll_alert_level_", "XLL.ALERT.LEVEL")
++	Function(XLL_WORD, "_xll_alert_level_", "XLL.ALERT.LEVEL")
+ 	.Arguments({
+ 		Arg(XLL_LPOPER, "level", "is the alert level mask to set.", "=XLL_ALERT_ERROR()"),
+ 	})
+@@ -99,7 +99,7 @@ is stored at <code>HKEY_CURRENT_USER\Software\KALX\xll\xll_alert_level</code>
+ in the registry to persist across Excel sessions.
+ )")
+ );
+-DWORD WINAPI xll_alert_level_(LPOPER plevel)
++extern "C" DWORD WINAPI xll_alert_level_(LPOPER plevel)
+ {
+ #pragma XLLEXPORT
+ 	DWORD oal = xll_alert_level;
+diff --git a/xll/handle.h b/xll/handle.h
+index 8087d62..5242ba0 100644
+--- a/xll/handle.h
++++ b/xll/handle.h
+@@ -73,20 +73,20 @@ namespace xll {
+ 	struct unique_ptrcmp {
+ 		using is_transparent = void;
+ 
+-		template<class T>
+-		bool operator()(const std::unique_ptr<T>& a, const T* b) const
++		template<class U>
++		bool operator()(const std::unique_ptr<U>& a, const U* b) const
+ 		{
+ 			return a.get() < b;
+ 		}
+ 
+-		template<class T>
+-		bool operator()(const T* a, const std::unique_ptr<T>& b) const
++		template<class U>
++		bool operator()(const U* a, const std::unique_ptr<U>& b) const
+ 		{
+ 			return a < b.get();
+ 		}
+ 
+-		template<class T>
+-		bool operator()(const std::unique_ptr<T>& a, const std::unique_ptr<T>& b) const
++		template<class U>
++		bool operator()(const std::unique_ptr<U>& a, const std::unique_ptr<U>& b) const
+ 		{
+ 			return a.get() < b.get();
+ 		}
+diff --git a/xll/oper.h b/xll/oper.h
+index bc1e888..5554b09 100644
+--- a/xll/oper.h
++++ b/xll/oper.h
+@@ -35,7 +35,6 @@ namespace xll {
+ 		typedef typename traits<X>::xint xint;
+ 		typedef typename traits<X>::xrw xrw;
+ 		typedef typename traits<X>::xcol xcol;
+-		typedef typename traits<X>::xint xint;
+ 		typedef typename traits<X>::xref xref;
+ 
+ 	public:
+diff --git a/xll/sref.h b/xll/sref.h
+index 402c09a..7c2e853 100644
+--- a/xll/sref.h
++++ b/xll/sref.h
+@@ -21,8 +21,8 @@ inline auto operator<=>(const X & x, const X & y)
+ // operator<=> only generates comparisons for C++ classes
+ // inheriting from extern "C" XLREF subverts auto genereration
+ #define REF_CTW(op) \
+-	inline bool operator ## op(const XLREF& x, const XLREF& y) { return x <=> y op 0; } \
+-	inline bool operator ## op(const XLREF12& x, const XLREF12& y) { return x <=> y op 0; } \
++	inline bool operator op(const XLREF& x, const XLREF& y) { return x <=> y op 0; } \
++	inline bool operator op(const XLREF12& x, const XLREF12& y) { return x <=> y op 0; } \
+ 
+ REF_CTW(==)
+ REF_CTW(!=)
+diff --git a/xll/traits.h b/xll/traits.h
+index 25f3258..9b9001c 100644
+--- a/xll/traits.h
++++ b/xll/traits.h
+@@ -14,7 +14,7 @@ namespace xll {
+ 		)
+ 		struct traits { };
+ 
+-#define XLL_TYPE_TRAITS(a,b,c,d,e) typedef decltype(XLOPER::val.##b) x##c;
++#define XLL_TYPE_TRAITS(a,b,c,d,e) typedef decltype(XLOPER::val.b) x##c;
+ 	template<>
+ 	struct traits<XLOPER> {
+ 		typedef XLOPER xtype;
+@@ -72,7 +72,7 @@ namespace xll {
+ 	};
+ #undef XLL_TYPE_TRAITS
+ 
+-#define XLL_TYPE_TRAITS(a,b,c,d,e) typedef decltype(XLOPER12::val. ## b) x##c;
++#define XLL_TYPE_TRAITS(a,b,c,d,e) typedef decltype(XLOPER12::val.b) x##c;
+ 	template<>
+ 	struct traits<XLOPER12> {
+ 		typedef XLOPER12 xtype;
+@@ -83,7 +83,6 @@ namespace xll {
+ 			XLL_TYPE_ALLOC(XLL_TYPE_TRAITS)
+ 			typedef XCHAR xchar;
+ 		typedef const XCHAR* xcstr;
+-		//typedef INT32 xint;
+ 		typedef WORD xword;
+ 		typedef RW xrw;
+ 		typedef COL xcol;
+diff --git a/xll/xloper.h b/xll/xloper.h
+index ec4bb08..3ea2ad3 100644
+--- a/xll/xloper.h
++++ b/xll/xloper.h
+@@ -1,8 +1,10 @@
+ // xloper.h - XLOPER related code
+ // Copyright (c) KALX, LLC. All rights reserved. No warranty made.
+ #pragma once
++#include <cstdint>
+ #include <compare>
+ #include <concepts>
++#include <limits>
+ #include "traits.h"
+ #include "sref.h"
+ 
+@@ -317,8 +319,8 @@ inline auto operator<=>(const X& x, const X& y)
+ }
+ 
+ #define XLOPER_CMP(op) \
+-	inline bool operator##op(const XLOPER& x, const XLOPER& y) { return x <=> y op 0; } \
+-	inline bool operator##op(const XLOPER12& x, const XLOPER12& y) { return x <=> y op 0; } \
++	inline bool operator op(const XLOPER& x, const XLOPER& y) { return x <=> y op 0; } \
++	inline bool operator op(const XLOPER12& x, const XLOPER12& y) { return x <=> y op 0; } \
+ 
+ XLOPER_CMP(==)
+ XLOPER_CMP(!=)

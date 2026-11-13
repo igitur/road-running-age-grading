@@ -47,6 +47,8 @@ One formula, 180 age grades, spilled down the column.
 Full reference with examples: [docs/functions.md](docs/functions.md).
 Custom tables: [docs/ad-hoc-tables.md](docs/ad-hoc-tables.md).
 Where tables live and how caching works: [docs/tables-and-caching.md](docs/tables-and-caching.md).
+**What had to be patched in the xll framework to build this at all:**
+[docs/framework-patches.md](docs/framework-patches.md).
 
 ## Arguments
 
@@ -75,9 +77,16 @@ $ make verify    # dump the PE export and import tables
 ```
 
 Requires `gcc-mingw-w64-x86-64`, `g++-mingw-w64-x86-64`, and the xll library
-checked out at `$(XLL_DIR)` (default `~/code/xll`). The library needs the
-[mingw portability patches](../docs/07-implementation.md) — the copy on this
-machine already has them.
+checked out at `$(XLL_DIR)` (default `~/code/xll`). The published library does
+not compile with GCC; bring it to a working state with
+
+```console
+$ ./tools/apply-xll-patches.sh          # clones upstream if absent, then patches
+```
+
+Seven files, 46 lines — see [docs/framework-patches.md](docs/framework-patches.md)
+for each fix, the compiler error it removes, and the shims that live outside the
+library.
 
 `make` produces `xll_age_grading.xll` (1.3 MB, imports only KERNEL32, USER32,
 ADVAPI32, SHLWAPI and msvcrt — no libgcc/libstdc++ DLLs to ship).
@@ -152,7 +161,9 @@ test/test_main.cpp             native test suite
 test/expected.h                ground truth from aggrade, generated
 tools/gen_tables.py            data/mldr_road.json -> ag_tables_generated.h
 tools/gen_expectations.py      aggrade -> test/expected.h
-xll_age_grading.def            exported symbols
+tools/apply-xll-patches.sh     recreate the mingw-portable xll library
+patches/xll-mingw-portability.patch   the 7-file framework patch
+xll_age_grading.def            exported symbols (checked against the PE table by make verify)
 excel4_compat.cpp              Excel4/Excel4v shim for mingw (see docs)
 shim/                          case-fixing header symlinks (generated)
 ```
