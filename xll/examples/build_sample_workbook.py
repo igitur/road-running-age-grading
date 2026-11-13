@@ -140,7 +140,10 @@ def custom_factors(sex: str, km: float) -> list[float]:
 
 
 def custom_grade(sex: str, km: float, age: float, time_s: float) -> float:
-    """Grade with the sparse custom table, mimicking ag_core.cpp exactly."""
+    """Grade with the sparse custom table, mimicking ag_core.cpp exactly.
+
+    Returns a fraction (0.7127), matching RRAG.GRADE and Grade.percent.
+    """
     ages = CUSTOM_AGES
     v = custom_factors(sex, km)
     f = v[0] if age <= ages[0] else v[-1]
@@ -152,7 +155,7 @@ def custom_grade(sex: str, km: float, age: float, time_s: float) -> float:
                 break
     std_clock = next(r[2] for r in CUSTOM_ROWS
                      if r[0] == sex and abs(label_km(r[1]) - km) < 1e-9)
-    return 100.0 * (secs(std_clock) / f) / time_s
+    return (secs(std_clock) / f) / time_s        # a fraction: 0.7127
 
 
 # ---------------------------------------------------------------------------
@@ -1016,7 +1019,7 @@ def sheet_custom(wb: Workbook) -> None:
         built_in = grade(sex, age, label_km(event), secs(t)).percent
         expected(ws, f"H{row}", round(built_in, 4), PCT_FMT)
         c = ws[f"I{row}"]
-        c.value = f"=E{row}-H{row}"
+        c.value = f"=(E{row}-H{row})*100"
         c.number_format = "+0.00;-0.00;0.00"
         c.fill, c.border, c.alignment, c.font = FILL_EXP, BOX, CENTER, F_BODY
         c = ws[f"J{row}"]
@@ -1520,6 +1523,19 @@ def validate(wb) -> list[str]:
     if wb.sheetnames != EXPECTED_SHEETS:
         problems.append(f"sheet manifest mismatch: built {wb.sheetnames}, "
                         f"expected {EXPECTED_SHEETS}")
+    # A percentage is stored as a fraction. A static 71.27 in a 00.00% cell
+    # renders as 7127.00%, which is exactly how the custom-tables sheet shipped
+    # a column of MISMATCHes. Nothing else in this workbook puts a number above
+    # 10 in a percent-formatted cell, so assert it.
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for c in row:
+                if c.number_format == PCT_FMT and isinstance(c.value, (int, float)) \
+                        and abs(c.value) > 10:
+                    problems.append(
+                        f"{ws.title}!{c.coordinate}: {c.value} in a {PCT_FMT} cell "
+                        f"(a percentage is stored as a fraction)")
+
     for ws in wb.worksheets:
         merges = []
         for rng in ws.merged_cells.ranges:
