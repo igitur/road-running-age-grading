@@ -263,12 +263,26 @@ def sheet_start(wb: Workbook) -> None:
             "Cream cells are inputs. Change them and watch the blue cells follow.",
         ]),
         ("About the array formulas", [
-            "The multi-cell demos (spilled columns, AG.BLOCK) are stored as legacy array formulas "
-            "(Ctrl+Shift+Enter) over an exact range, so they work in Excel 2010 and later as well "
-            "as in Excel 365.",
-            "In Excel 365 you can delete one and retype it in a single cell: it spills on its own.",
-            "An array formula locks its output range. If a spilled range ever shows #N/A at the "
-            "bottom, the range is bigger than the result — resize it.",
+            "The multi-cell demos are Excel 365 dynamic array formulas: one formula in the top-left "
+            "cell that spills down or across. No Ctrl+Shift+Enter, no curly braces.",
+            "They are stored the way Excel itself stores a dynamic array — a one-cell array formula "
+            "carrying dynamic-array metadata (xl/metadata.xml) — so Excel spills them on open "
+            "instead of reading them as legacy formulas and prefixing them with @.",
+            "Dynamic arrays need Excel 365 or Excel 2021. In Excel 2019 and older the spill simply "
+            "will not happen and you will see one value; sheet 2, One call, shows every function "
+            "returning a single value if you need that.",
+        ]),
+        ("About calculation mode", [
+            "The workbook is saved as Automatic and asks Excel for a full recalculation on load "
+            "(calcPr calcMode=\"auto\" fullCalcOnLoad=\"1\" forceFullCalc=\"1\"), so the values "
+            "are right the moment it opens.",
+            "If Excel still shows Manual in Formulas > Calculation Options, that is the Excel "
+            "session rather than this file: Excel applies the calculation mode of the FIRST "
+            "workbook you open to every workbook opened after it, whatever each file says. Close "
+            "all workbooks and open this one, or set File > Options > Formulas > Workbook "
+            "Calculation to Automatic.",
+            "The forced recalculation on load means the numbers are correct even in a Manual "
+            "session; what stops working is recalculation after you type a new input.",
         ]),
         ("What is underneath", [
             "Four published editions are compiled into the add-in: 2025, 2020, 2015, 2010. The fifth "

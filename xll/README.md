@@ -87,7 +87,15 @@ post-processes the saved file the way Excel itself does it: each anchor becomes 
 one-cell array formula marked `cm="1"`, backed by an `xl/metadata.xml` part
 declaring `XLDAPR`/`fDynamic="1"`. Without that mark Excel reads a bare formula as
 pre-365 and rewrites it to `=@AG.GRADE(…)`, which spills nothing. The workbook
-also sets `calcMode="auto"`, `fullCalcOnLoad` and `forceFullCalc`. The build refuses to write a file
+also sets `calcMode="auto"`, `fullCalcOnLoad` and `forceFullCalc`.
+
+A workbook cannot force the mode on its own, though: Excel gives every workbook in
+a session the mode of the **first** one opened, ignoring what the later files say
+([Microsoft's own description](https://learn.microsoft.com/en-us/troubleshoot/microsoft-365-apps/excel/current-mode-of-calculation)).
+The forced recalculation on load means the values are still correct in a manual
+session; only recalculation after an input changes stops. If Excel shows Manual,
+close all workbooks and open this one, or set File > Options > Formulas >
+Workbook Calculation to Automatic. The build refuses to write a file
 that would make Excel repair itself or show `#SPILL!`: no merged range may
 overlap an array's output area, no two merges may overlap, and nothing may sit in
 a cell a formula is meant to spill onto. `--check` runs the same validation on
