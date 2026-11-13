@@ -60,7 +60,10 @@ The workbook's twelve live formulas need the add-in loaded; without it they show
    Excel bundle is built into `assets/`, because `gh-action-pypi-publish` uploads
    every file in `dist/` and rejects a stray archive (`InvalidDistribution: Too
    many top-level members in sdist archive`). The two travel as separate
-   artifacts and are joined again on the release page.
+   artifacts and are joined again on the release page. The build also asserts the
+   sdist contains no `.zip`/`.xll`/`.whl`, because setuptools-scm ships every
+   *tracked* file — a committed build output would ride into the upload unseen
+   (which is how 0.0.2's sdist came to be 883 kB with the Excel bundle inside).
 3. **pypi** — trusted publishing, gated on the repository variable
    `PYPI_ENABLED` (see below). On success it polls the PyPI JSON API until the
    version is really listed, so a green run means "downloadable", not "uploaded".

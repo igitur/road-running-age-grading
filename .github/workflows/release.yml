@@ -42,6 +42,20 @@ jobs:
       - name: Build sdist and wheel
         run: python -m build
 
+      - name: The sdist must carry sources, not our build outputs
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import tarfile, sys, glob
+          sdist = glob.glob("dist/*.tar.gz")[0]
+          with tarfile.open(sdist) as t:
+              names = t.getnames()
+          junk = [n for n in names if n.endswith((".xll", ".zip", ".whl", ".o"))]
+          if junk:
+              sys.exit(f"{sdist} contains build outputs: {junk[:5]}")
+          print(f"  {sdist}: {len(names)} entries, no binaries")
+          PY
+
       - name: The version must be the tag
         id: version
         run: |

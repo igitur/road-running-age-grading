@@ -18,9 +18,11 @@ notes/
 # editable-install metadata
 *.egg-info/
 
-# build outputs (`make dist`); releases carry them, git does not
+# build outputs (`make dist`) and the release's Excel bundle; the release carries
+# them, git does not - and anything tracked here lands in the PyPI sdist
 dist/
 build/
+assets/
 
 # --- Excel add-in build artefacts (xll/) -----------------------------------
 xll/*.o
