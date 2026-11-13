@@ -20,7 +20,7 @@ columns out — so one formula per column grades the whole squad.
 | `table` | `"2025"` / `2025` / `"latest"` | a range (custom table) |
 
 A scalar broadcasts. Every *vector* must be the same length; otherwise the call
-returns `#NUM!` and `AG.LASTERROR()` says something like
+returns `#NUM!` and `RRAG.LASTERROR()` says something like
 `row 1: time has 2 values but age has 3; every vector argument must be the same length`.
 
 ### Times
@@ -35,7 +35,7 @@ Three ways to say forty minutes, all equivalent:
 
 The rule for numbers: **below 1 is an Excel time value, 1 or above is seconds.**
 A serial of 2400 would be six and a half years, so there is no ambiguity in
-practice. Times returned by `AG.GRADEDTIME`, `AG.STANDARD` and `AG.TIMEFORPCT`
+practice. Times returned by `RRAG.GRADEDTIME`, `RRAG.STANDARD` and `RRAG.TIMEFORPCT`
 are Excel time values — format the column as `[h]:mm:ss`, or multiply by 86400
 for seconds.
 
@@ -46,18 +46,18 @@ leave matters:
 
 | Function | Scalar arguments | Vector arguments |
 | --- | --- | --- |
-| `AG.GRADE`, `AG.GRADEDTIME`, `AG.FACTOR`, `AG.STANDARD`, `AG.TIMEFORPCT` | 1 × 1 | same shape as the input vector |
-| `AG.BLOCK` | 1 × 5 | n × 5 (one row per input) |
-| `AG.TABLEINFO` | 1 × 4 | 1 × 4 |
-| `AG.CACHEINFO` | 1 × 6 | 1 × 6 |
-| `AG.TABLES` | n × 1 — one edition per **row** | n × 1 |
-| `AG.VERSION`, `AG.LASTERROR` | 1 × 1 (text) | 1 × 1 |
+| `RRAG.GRADE`, `RRAG.GRADEDTIME`, `RRAG.FACTOR`, `RRAG.STANDARD`, `RRAG.TIMEFORPCT` | 1 × 1 | same shape as the input vector |
+| `RRAG.BLOCK` | 1 × 5 | n × 5 (one row per input) |
+| `RRAG.TABLEINFO` | 1 × 4 | 1 × 4 |
+| `RRAG.CACHEINFO` | 1 × 6 | 1 × 6 |
+| `RRAG.TABLES` | n × 1 — one edition per **row** | n × 1 |
+| `RRAG.VERSION`, `RRAG.LASTERROR` | 1 × 1 (text) | 1 × 1 |
 
-The sample workbook wraps `AG.TABLEINFO` and `AG.CACHEINFO` in `TRANSPOSE()` so
-they stand up as columns beside `AG.TABLES`; that is a layout choice, not a
+The sample workbook wraps `RRAG.TABLEINFO` and `RRAG.CACHEINFO` in `TRANSPOSE()` so
+they stand up as columns beside `RRAG.TABLES`; that is a layout choice, not a
 requirement.
 
-`AG.TABLES` is the one to watch: it returns a column, so it needs empty cells
+`RRAG.TABLES` is the one to watch: it returns a column, so it needs empty cells
 *below* the anchor. Reserve a row for it and Excel gives you `#SPILL!`, because
 the cell underneath is already in use. Nothing is transposed for you — wrap the
 call in `TRANSPOSE()` if you want it the other way round.
@@ -96,66 +96,66 @@ wrong grade, which is worse than an error.
 | vector length mismatch, unknown table, unreadable table range | `#NUM!` for the whole call |
 | blank time in a row | row left as `0` — not an error, so partial sheets work |
 
-`AG.LASTERROR()` returns the first failure's explanation. Because results are
+`RRAG.LASTERROR()` returns the first failure's explanation. Because results are
 returned as numeric arrays (which is what makes them spill), a specific Excel
 error type like `#VALUE!` is not available: every failure is `#NUM!`, and the
-reason lives in `AG.LASTERROR()`.
+reason lives in `RRAG.LASTERROR()`.
 
 ---
 
-## `AG.GRADE(sex, age, distance, time, [table])`
+## `RRAG.GRADE(sex, age, distance, time, [table])`
 
 The age grade, as a percentage. 100 means "as good as the world-standard mark
 for that exact age and sex"; 68.49 means the athlete took 100/68.49 = 1.46× as
 long as that standard.
 
 ```
-=AG.GRADE("M", 40, 10, "40:00")                 → 68.49
-=AG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)   → 180 percentages
-=AG.GRADE(B2, C2, D2, E2, "2020")               → graded on the 2020 tables
+=RRAG.GRADE("M", 40, 10, "40:00")                 → 68.49
+=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)   → 180 percentages
+=RRAG.GRADE(B2, C2, D2, E2, "2020")               → graded on the 2020 tables
 ```
 
 Above 100% is a real answer (a 65-year-old running 32:00 for 10 km scores ~106%).
 It is never clamped: a whole age band scoring over 100 is the classic sign that
 the table is too soft there.
 
-## `AG.GRADEDTIME(sex, age, distance, time, [table])`
+## `RRAG.GRADEDTIME(sex, age, distance, time, [table])`
 
 The performance converted to open-class age: `time × factor`, as an Excel time
 value.
 
 ```
-=AG.GRADEDTIME("M", 40, 10, "40:00")    → 0:38:33  (= 38:32.6)
+=RRAG.GRADEDTIME("M", 40, 10, "40:00")    → 0:38:33  (= 38:32.6)
 ```
 
-## `AG.FACTOR(sex, age, distance, [table])`
+## `RRAG.FACTOR(sex, age, distance, [table])`
 
 The factor from the table, 4 decimal places of meaningful precision. Useful for
 sorting a field by "how well did they run for their age" without needing a time.
 
 ```
-=AG.FACTOR("F", 56, 10)     → 0.8226
+=RRAG.FACTOR("F", 56, 10)     → 0.8226
 ```
 
-## `AG.STANDARD(sex, age, distance, [table])`
+## `RRAG.STANDARD(sex, age, distance, [table])`
 
 The **open standard** for the distance — the world-class mark with no age
 adjustment (`26:24` for a male 10 km). It does not depend on age; the age
 argument is accepted only so the signature matches its siblings.
 
-## `AG.TIMEFORPCT(sex, age, distance, percent, [table])`
+## `RRAG.TIMEFORPCT(sex, age, distance, percent, [table])`
 
 The calculator's *Result* button: what time scores the given percentage?
 
 ```
-=AG.TIMEFORPCT("M", 40, 10, 68.49)      → 0:40:00
-=AG.TIMEFORPCT("F", 52, "21.1", 80)     → the half marathon that scores 80%
+=RRAG.TIMEFORPCT("M", 40, 10, 68.49)      → 0:40:00
+=RRAG.TIMEFORPCT("F", 52, "21.1", 80)     → the half marathon that scores 80%
 ```
 
 Useful for setting club standards: "a bronze badge is 65% at your age and
 distance" — compute the target time per member and paste it into the sheet.
 
-## `AG.BLOCK(sex, age, distance, time, [table])`
+## `RRAG.BLOCK(sex, age, distance, time, [table])`
 
 Everything in one spill — the function to use when building a report.
 
@@ -170,30 +170,30 @@ Everything in one spill — the function to use when building a report.
 ```
      A        B     C      D       E            F                              G H I J K
 1    Name     Sex   Age    Dist    Time         <one formula in F2, spills to J>
-2    A. M.    F     34     10      0:38:12      =AG.BLOCK(B2:B181,C2:C181,D2:D181,E2:E181)
+2    A. M.    F     34     10      0:38:12      =RRAG.BLOCK(B2:B181,C2:C181,D2:D181,E2:E181)
 ```
 
 Put the five headers in row 1 first (an XLL result cannot carry text labels).
 
-## `AG.TABLES()`
+## `RRAG.TABLES()`
 
 The edition years this add-in can grade with, newest first.
 
 ```
-=AG.TABLES()      → 2025 / 2020 / 2015 / 2010   (one per row)
+=RRAG.TABLES()      → 2025 / 2020 / 2015 / 2010   (one per row)
 ```
 
-## `AG.TABLEINFO([table])`
+## `RRAG.TABLEINFO([table])`
 
 One row, four values: year, number of distances, number of ages, number of sexes
 (2 for a published edition, 1 for a single-sex custom table).
 
 ```
-=AG.TABLEINFO()          → 2025 | 22 | 96 | 2
-=AG.TABLEINFO(A1:F40)    → describes your custom table
+=RRAG.TABLEINFO()          → 2025 | 22 | 96 | 2
+=RRAG.TABLEINFO(A1:F40)    → describes your custom table
 ```
 
-## `AG.CACHEINFO()`
+## `RRAG.CACHEINFO()`
 
 One row, six values: built-in editions, loaded CSV tables, custom ranges held,
 cache hits, cache misses, and the custom-range capacity.
@@ -201,24 +201,24 @@ cache hits, cache misses, and the custom-range capacity.
 Watch `hits` climb while a long column recalculates: the range is parsed once,
 not once per cell.
 
-## `AG.CACHECLEAR()`
+## `RRAG.CACHECLEAR()`
 
 Drops cached CSV and custom-range tables and returns 1. Run it after editing a
 table CSV — the only case where the cache can go stale, since ad hoc ranges are
 keyed by a hash of their contents and cannot go stale.
 
-## `AG.LASTERROR()`
+## `RRAG.LASTERROR()`
 
 The explanation for the most recent failure, or `no error`.
 
 ```
-=AG.LASTERROR()
+=RRAG.LASTERROR()
 → row 47: distance 500 km is outside the published range 1.609344-200 km
 ```
 
 Put it next to a column of `#NUM!` and the diagnosis is immediate.
 
-## `AG.VERSION()`
+## `RRAG.VERSION()`
 
 Add-in version and how many editions are built in, e.g.
 `aggrade-xll 2025.1 (4 built-in editions)`.
@@ -230,11 +230,11 @@ Add-in version and how many editions are built in, e.g.
 ```
      A          B     C      D        E        F          G            H
  1   Athlete    Sex   Age    Dist     Time     Grade      Graded       Factor
- 2   T. Mokoena  M     47     10       0:39:40  =AG.GRADE(B2,C2,D2,E2)   =AG.GRADEDTIME(...)  =AG.FACTOR(...)
+ 2   T. Mokoena  M     47     10       0:39:40  =RRAG.GRADE(B2,C2,D2,E2)   =RRAG.GRADEDTIME(...)  =RRAG.FACTOR(...)
  3   ...
 ```
 
-To fill all three columns in one go, use `AG.BLOCK` in F2 and copy the formulas
+To fill all three columns in one go, use `RRAG.BLOCK` in F2 and copy the formulas
 downwards only if you want the per-row form; the array form needs one cell.
 
 Sanity check the output before publishing it: masters cluster in the 50–75%

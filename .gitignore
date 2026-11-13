@@ -21,7 +21,7 @@ notes/
 # --- Excel add-in build artefacts (xll/) -----------------------------------
 xll/*.o
 xll/*.xll
-xll/xll_age_grading_test
+xll/road_running_age_grading_test
 xll_test_tmp/
 # case-fixing header symlinks, created by `make -C xll shim`
 xll/shim/

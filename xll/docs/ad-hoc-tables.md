@@ -6,7 +6,7 @@ trial). So the fifth argument of every grading function accepts a **range** in
 place of an edition name:
 
 ```
-=AG.GRADE($B$2:$B$181, $C$2:$C$181, $D$2:$D$181, $E$2:$E$181, $M$2:$X$40)
+=RRAG.GRADE($B$2:$B$181, $C$2:$C$181, $D$2:$D$181, $E$2:$E$181, $M$2:$X$40)
 ```
 
 That range is a whole table. This page defines what it may look like, and why
@@ -84,7 +84,7 @@ in the formula find each other.
 
 ### C. One cell holding JSON or CSV
 
-`=AG.GRADE(…, "{""M"":{""10km"":{…}}}")`
+`=RRAG.GRADE(…, "{""M"":{""10km"":{…}}}")`
 
 - Only pro: one cell to copy.
 - Rejected: unreadable and uneditable in Excel, impossible to spot-check, hits
@@ -115,7 +115,7 @@ Transposed: `Distance` across the top, `Age` down the left.
 
 ### F. A named Excel Table (ListObject) with structured references
 
-`=AG.GRADE(…, Table_Handicap)`
+`=RRAG.GRADE(…, Table_Handicap)`
 
 - This already works: a named table resolves to a range like any other, so
   `Table_Handicap` and `$M$2:$X$40` are interchangeable. Nothing extra to
@@ -159,7 +159,7 @@ F,10 k,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176
 ```
 
 ```
-=AG.GRADE($B$2:$B$181, $C$2:$C$181, "10k", $E$2:$E$181, "bellville-vets")
+=RRAG.GRADE($B$2:$B$181, $C$2:$C$181, "10k", $E$2:$E$181, "bellville-vets")
 ```
 
 A 55-year-old man running 45:00 scores `100 × (1584/0.8937) / 2700 = 65.6%` on
@@ -177,7 +177,7 @@ A custom table is not age grading as published, and shouldn't be reported as if
 it were:
 
 - Say which table produced a percentage, exactly as you would say which year.
-- `AG.TABLEINFO(range)` returns the geometry (distances, ages, sexes) of a range
+- `RRAG.TABLEINFO(range)` returns the geometry (distances, ages, sexes) of a range
   — a cheap check that you pointed at the right block.
 - The built-in editions remain the reference. If a club table and 2025 disagree
   in the first decimal for a mid-pack runner, that is a bug in the club table.

@@ -54,11 +54,11 @@ No dependencies outside the standard library for the library itself
 
 ## In Excel
 
-`xll/xll_age_grading.xll` is a native add-in for grading a whole squad at once:
+`xll/road_running_age_grading.xll` is a native add-in for grading a whole squad at once:
 
 ```excel
-=AG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)     180 age grades, spilled
-=AG.BLOCK(B2:B181, C2:C181, D2:D181, E2:E181)     factor, standards, graded time, percent
+=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)     180 age grades, spilled
+=RRAG.BLOCK(B2:B181, C2:C181, D2:D181, E2:E181)     factor, standards, graded time, percent
 ```
 
 Four editions are compiled in (2025/2020/2015/2010), the fifth argument selects

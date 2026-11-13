@@ -10,7 +10,7 @@ It exists because the published VBA macros grade **one** performance at a time
 with 180 finishers in a spreadsheet. Every function here takes columns.
 
 ```
-=AG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)
+=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)
 ```
 
 One formula, 180 age grades, spilled down the column.
@@ -31,18 +31,18 @@ One formula, 180 age grades, spilled down the column.
 
 | Function | Returns |
 | --- | --- |
-| `AG.GRADE(sex, age, distance, time, [table])` | age grade **percent** |
-| `AG.GRADEDTIME(sex, age, distance, time, [table])` | age-graded **time** (Excel time value) |
-| `AG.FACTOR(sex, age, distance, [table])` | the age **factor** (0 < f ≤ 1) |
-| `AG.STANDARD(sex, age, distance, [table])` | the **open standard** for the distance |
-| `AG.TIMEFORPCT(sex, age, distance, percent, [table])` | the time that scores `percent` |
-| `AG.BLOCK(sex, age, distance, time, [table])` | **five columns**: factor, open standard, age standard, graded time, percent |
-| `AG.TABLES()` | edition years available |
-| `AG.TABLEINFO([table])` | year, distances, ages, sexes in a table |
-| `AG.CACHEINFO()` | cache counters |
-| `AG.CACHECLEAR()` | drop cached tables, return 1 |
-| `AG.LASTERROR()` | why the last call failed (text) |
-| `AG.VERSION()` | add-in version (text) |
+| `RRAG.GRADE(sex, age, distance, time, [table])` | age grade **percent** |
+| `RRAG.GRADEDTIME(sex, age, distance, time, [table])` | age-graded **time** (Excel time value) |
+| `RRAG.FACTOR(sex, age, distance, [table])` | the age **factor** (0 < f ≤ 1) |
+| `RRAG.STANDARD(sex, age, distance, [table])` | the **open standard** for the distance |
+| `RRAG.TIMEFORPCT(sex, age, distance, percent, [table])` | the time that scores `percent` |
+| `RRAG.BLOCK(sex, age, distance, time, [table])` | **five columns**: factor, open standard, age standard, graded time, percent |
+| `RRAG.TABLES()` | edition years available |
+| `RRAG.TABLEINFO([table])` | year, distances, ages, sexes in a table |
+| `RRAG.CACHEINFO()` | cache counters |
+| `RRAG.CACHECLEAR()` | drop cached tables, return 1 |
+| `RRAG.LASTERROR()` | why the last call failed (text) |
+| `RRAG.VERSION()` | add-in version (text) |
 
 Full reference with examples: [docs/functions.md](docs/functions.md).
 Custom tables: [docs/ad-hoc-tables.md](docs/ad-hoc-tables.md).
@@ -64,12 +64,12 @@ length as the others** — the rule you would expect for a squad sheet:
 | `table` | optional: edition name (`2025`, `2020`, `2015`, `2010`, `latest`), a `<name>.csv` sidecar, or **a range** holding a custom table |
 
 Length mismatches never silently misalign rows: they return `#NUM!` and
-`AG.LASTERROR()` names both arguments and both counts.
+`RRAG.LASTERROR()` names both arguments and both counts.
 
 ## Sample workbook
 
 `examples/age-grading-sample.xlsx` is a worked workbook that exercises all twelve
-functions: a twelve-athlete squad graded with columns and with one `AG.BLOCK`
+functions: a twelve-athlete squad graded with columns and with one `RRAG.BLOCK`
 call, every scalar function, the four editions, the vector rules and their
 errors, both custom-table layouts, time formats, and a reference sheet. Live
 formulas sit next to the expected answers (grey) with an automatic OK/MISMATCH
@@ -86,7 +86,7 @@ no curly braces. openpyxl cannot express that on its own, so the build
 post-processes the saved file the way Excel itself does it: each anchor becomes a
 one-cell array formula marked `cm="1"`, backed by an `xl/metadata.xml` part
 declaring `XLDAPR`/`fDynamic="1"`. Without that mark Excel reads a bare formula as
-pre-365 and rewrites it to `=@AG.GRADE(…)`, which spills nothing. The workbook
+pre-365 and rewrites it to `=@RRAG.GRADE(…)`, which spills nothing. The workbook
 also sets `calcMode="auto"`, `fullCalcOnLoad` and `forceFullCalc`.
 
 To see what Excel is actually doing, the sample workbook carries `=INFO("RECALC")`
@@ -145,7 +145,7 @@ Seven files, 46 lines — see [docs/framework-patches.md](docs/framework-patches
 for each fix, the compiler error it removes, and the shims that live outside the
 library.
 
-`make` produces `xll_age_grading.xll` (1.3 MB, imports only KERNEL32, USER32,
+`make` produces `road_running_age_grading.xll` (1.3 MB, imports only KERNEL32, USER32,
 ADVAPI32, SHLWAPI and msvcrt — no libgcc/libstdc++ DLLs to ship).
 
 On Windows with Visual Studio, add the same `src/*.cpp` files to a copy of the
@@ -154,7 +154,7 @@ xll headers, and MSVC needs no shim (its filesystem is case-insensitive).
 
 ## Install
 
-1. Copy `xll_age_grading.xll` somewhere permanent.
+1. Copy `road_running_age_grading.xll` somewhere permanent.
 2. `File → Options → Trust Center → Trust Center Settings → Macro Settings →
    Enable VBA Macros` (XLLs count as macros).
 3. If it came from another machine, right-click the file → Properties → Unblock.
@@ -169,15 +169,15 @@ old code.
 
 ```
    A      B     C      D        E          F            G          H
-1  Name   Sex   Age    Dist     Time       AG.GRADE     Result
-2  A. M.   F     34     10      0:38:12    =AG.GRADE(B2:B9,C2:C9,D2:D9,E2:E9)
+1  Name   Sex   Age    Dist     Time       RRAG.GRADE     Result
+2  A. M.   F     34     10      0:38:12    =RRAG.GRADE(B2:B9,C2:C9,D2:D9,E2:E9)
 ```
 
 Or one call for the whole report:
 
 | Column | Formula |
 | --- | --- |
-| factor | `=AG.BLOCK(B2:B181, C2:C181, D2:D181, E2:E181)` |
+| factor | `=RRAG.BLOCK(B2:B181, C2:C181, D2:D181, E2:E181)` |
 | open standard | …spills into the next column automatically |
 | age standard | … |
 | graded time | … |
@@ -198,8 +198,8 @@ is racing closest to their age standard.
 | vectors | broadcast, four-vector columns, length mismatch, blank rows, one bad row does not poison the column |
 | tables | name coercion (`2025` numeric and text), `latest`, older editions, unknown name, out-of-range distance, age clamping |
 | ad hoc | matrix and long formats agree, OpenStd optional, cache hit on the second call, bad factor/geometry rejected with the row number |
-| inverse | `AG.TIMEFORPCT(…, 68.49) → 40:00` |
-| diagnostics | `AG.TABLES`, `AG.TABLEINFO`, cache counters, cache clear |
+| inverse | `RRAG.TIMEFORPCT(…, 68.49) → 40:00` |
+| diagnostics | `RRAG.TABLES`, `RRAG.TABLEINFO`, cache counters, cache clear |
 | sidecar | a `<name>.csv` in a search directory loads and grades |
 
 What is **not** tested: loading the `.xll` inside Excel. There is no Excel on
@@ -212,7 +212,7 @@ untested claim until someone runs it on Windows.
 ```
 src/ag_core.{h,cpp}            table model, parsing, lookup, cache — no Excel
 src/ag_api.{h,cpp}             worksheet-facing API: vectors, validation
-src/xll_age_grading.cpp        the only Excel-aware file: XLOPER12 <-> cells
+src/road_running_age_grading.cpp        the only Excel-aware file: XLOPER12 <-> cells
 src/ag_tables_generated.h      the four published editions, generated (147 kB)
 test/test_main.cpp             native test suite
 test/expected.h                ground truth from aggrade, generated
@@ -220,7 +220,7 @@ tools/gen_tables.py            data/mldr_road.json -> ag_tables_generated.h
 tools/gen_expectations.py      aggrade -> test/expected.h
 tools/apply-xll-patches.sh     recreate the mingw-portable xll library
 patches/xll-mingw-portability.patch   the 7-file framework patch
-xll_age_grading.def            exported symbols (checked against the PE table by make verify)
+road_running_age_grading.def            exported symbols (checked against the PE table by make verify)
 excel4_compat.cpp              Excel4/Excel4v shim for mingw (see docs)
 shim/                          case-fixing header symlinks (generated)
 ```

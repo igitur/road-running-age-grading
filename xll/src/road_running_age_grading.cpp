@@ -1,4 +1,4 @@
-// xll_age_grading.cpp — the Excel add-in proper.
+// road_running_age_grading.cpp — the Excel add-in proper.
 //
 // This is the only file that knows about Excel. It converts XLOPER12 arguments
 // into ag::Value (plain cells), calls the portable API in ag_api.h, and converts
@@ -9,8 +9,8 @@
 // marshalling; it cannot be run without Excel, so it is kept small and boring.
 //
 // Naming: the library strips the leading '_' from the procedure name, so
-// "_xll_ag_grade" is resolved by Excel as the exported symbol "xll_ag_grade",
-// which xll_age_grading.def must export.
+// "_xll_rrag_grade" is resolved by Excel as the exported symbol "xll_rrag_grade",
+// which road_running_age_grading.def must export.
 #include <xll/xll.h>
 
 #include <limits>
@@ -176,15 +176,15 @@ Arg arg_table() {
                "\"2025\"");
 }
 
-const char* kCategory = "Age grading";
+const char* kCategory = "Road Running";
 
 }  // namespace
 
 // ===========================================================================
-// AG.GRADE — the age-grade percentage
+// RRAG.GRADE — the age-grade percentage
 // ===========================================================================
 static AddIn xai_ag_grade(
-    Function(XLL_FPX, "_xll_ag_grade", "AG.GRADE")
+    Function(XLL_FPX, "_xll_rrag_grade", "RRAG.GRADE")
         .Arguments({arg_sex(), arg_age(), arg_distance(), arg_time(), arg_table()})
         .FunctionHelp(
             "Age grade: the performance as a percentage of the world-standard "
@@ -192,7 +192,7 @@ static AddIn xai_ag_grade(
             "100 = as good as the age standard; above 100 is a genuine outlier. "
             "Pass whole columns to grade a squad in one formula.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_grade(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_grade(const OPER* sex, const OPER* age,
                                       const OPER* distance, const OPER* time,
                                       const OPER* table) {
 #pragma XLLEXPORT
@@ -206,17 +206,17 @@ extern "C" _FP12* WINAPI xll_ag_grade(const OPER* sex, const OPER* age,
 }
 
 // ===========================================================================
-// AG.GRADEDTIME
+// RRAG.GRADEDTIME
 // ===========================================================================
 static AddIn xai_ag_gradedtime(
-    Function(XLL_FPX, "_xll_ag_gradedtime", "AG.GRADEDTIME")
+    Function(XLL_FPX, "_xll_rrag_gradedtime", "RRAG.GRADEDTIME")
         .Arguments({arg_sex(), arg_age(), arg_distance(), arg_time(), arg_table()})
         .FunctionHelp(
             "Age-graded time: the performance converted to open-class age "
             "(time x factor). Returned as an Excel time value, so format the "
             "column as [h]:mm:ss to see it; multiply by 86400 for seconds.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_gradedtime(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_gradedtime(const OPER* sex, const OPER* age,
                                            const OPER* distance, const OPER* time,
                                            const OPER* table) {
 #pragma XLLEXPORT
@@ -231,16 +231,16 @@ extern "C" _FP12* WINAPI xll_ag_gradedtime(const OPER* sex, const OPER* age,
 }
 
 // ===========================================================================
-// AG.FACTOR
+// RRAG.FACTOR
 // ===========================================================================
 static AddIn xai_ag_factor(
-    Function(XLL_FPX, "_xll_ag_factor", "AG.FACTOR")
+    Function(XLL_FPX, "_xll_rrag_factor", "RRAG.FACTOR")
         .Arguments({arg_sex(), arg_age(), arg_distance(), arg_table()})
         .FunctionHelp(
             "The age factor itself (0 < factor <= 1): the multiplier the tables "
             "apply to a time at that age and distance.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_factor(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_factor(const OPER* sex, const OPER* age,
                                        const OPER* distance, const OPER* table) {
 #pragma XLLEXPORT
     ensure_init();
@@ -253,16 +253,16 @@ extern "C" _FP12* WINAPI xll_ag_factor(const OPER* sex, const OPER* age,
 }
 
 // ===========================================================================
-// AG.STANDARD
+// RRAG.STANDARD
 // ===========================================================================
 static AddIn xai_ag_standard(
-    Function(XLL_FPX, "_xll_ag_standard", "AG.STANDARD")
+    Function(XLL_FPX, "_xll_rrag_standard", "RRAG.STANDARD")
         .Arguments({arg_sex(), arg_age(), arg_distance(), arg_table()})
         .FunctionHelp(
             "The open standard for the distance (the world-class mark with no "
             "age adjustment), as an Excel time value.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_standard(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_standard(const OPER* sex, const OPER* age,
                                          const OPER* distance, const OPER* table) {
 #pragma XLLEXPORT
     ensure_init();
@@ -275,10 +275,10 @@ extern "C" _FP12* WINAPI xll_ag_standard(const OPER* sex, const OPER* age,
 }
 
 // ===========================================================================
-// AG.TIMEFORPCT — the calculator's "Result" button
+// RRAG.TIMEFORPCT — the calculator's "Result" button
 // ===========================================================================
 static AddIn xai_ag_timeforpct(
-    Function(XLL_FPX, "_xll_ag_timeforpct", "AG.TIMEFORPCT")
+    Function(XLL_FPX, "_xll_rrag_timeforpct", "RRAG.TIMEFORPCT")
         .Arguments({arg_sex(), arg_age(), arg_distance(),
                     Arg(XLL_LPOPER, "percent",
                         "The age grade you want to hit, e.g. 75 for 75%."),
@@ -287,7 +287,7 @@ static AddIn xai_ag_timeforpct(
             "Inverse grading: the time that would score the given age grade at "
             "that age and distance. Returned as an Excel time value.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_timeforpct(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_timeforpct(const OPER* sex, const OPER* age,
                                            const OPER* distance,
                                            const OPER* percent, const OPER* table) {
 #pragma XLLEXPORT
@@ -302,10 +302,10 @@ extern "C" _FP12* WINAPI xll_ag_timeforpct(const OPER* sex, const OPER* age,
 }
 
 // ===========================================================================
-// AG.BLOCK — everything in one spill: n x 5
+// RRAG.BLOCK — everything in one spill: n x 5
 // ===========================================================================
 static AddIn xai_ag_block(
-    Function(XLL_FPX, "_xll_ag_block", "AG.BLOCK")
+    Function(XLL_FPX, "_xll_rrag_block", "RRAG.BLOCK")
         .Arguments({arg_sex(), arg_age(), arg_distance(), arg_time(), arg_table()})
         .FunctionHelp(
             "Grade a whole squad and spill five columns at once: factor, open "
@@ -313,7 +313,7 @@ static AddIn xai_ag_block(
             "then the age grade percentage. Put the five headers in the row "
             "above before entering it.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_block(const OPER* sex, const OPER* age,
+extern "C" _FP12* WINAPI xll_rrag_block(const OPER* sex, const OPER* age,
                                       const OPER* distance, const OPER* time,
                                       const OPER* table) {
 #pragma XLLEXPORT
@@ -330,74 +330,74 @@ extern "C" _FP12* WINAPI xll_ag_block(const OPER* sex, const OPER* age,
 // diagnostics
 // ===========================================================================
 static AddIn xai_ag_tables(
-    Function(XLL_FPX, "_xll_ag_tables", "AG.TABLES")
+    Function(XLL_FPX, "_xll_rrag_tables", "RRAG.TABLES")
         .Arguments({})
         .FunctionHelp("List the edition years this add-in can grade with, newest "
-                      "first. Use one as the fifth argument to AG.GRADE.")
+                      "first. Use one as the fifth argument to RRAG.GRADE.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_tables(void) {
+extern "C" _FP12* WINAPI xll_rrag_tables(void) {
 #pragma XLLEXPORT
     ensure_init();
     return to_fpx(ag::tables());
 }
 
 static AddIn xai_ag_tableinfo(
-    Function(XLL_FPX, "_xll_ag_tableinfo", "AG.TABLEINFO")
+    Function(XLL_FPX, "_xll_rrag_tableinfo", "RRAG.TABLEINFO")
         .Arguments({arg_table()})
         .FunctionHelp(
             "Describe a table: year, number of distances, number of ages, and "
             "how many sexes it carries.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_tableinfo(const OPER* table) {
+extern "C" _FP12* WINAPI xll_rrag_tableinfo(const OPER* table) {
 #pragma XLLEXPORT
     ensure_init();
     return to_fpx(ag::table_info(to_value(table)));
 }
 
 static AddIn xai_ag_cacheinfo(
-    Function(XLL_FPX, "_xll_ag_cacheinfo", "AG.CACHEINFO")
+    Function(XLL_FPX, "_xll_rrag_cacheinfo", "RRAG.CACHEINFO")
         .Arguments({})
         .FunctionHelp(
             "Cache counters: built-in editions, loaded CSV tables, custom ranges "
             "held, cache hits, cache misses, maximum custom ranges held.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_cacheinfo(void) {
+extern "C" _FP12* WINAPI xll_rrag_cacheinfo(void) {
 #pragma XLLEXPORT
     ensure_init();
     return to_fpx(ag::cache_info());
 }
 
 static AddIn xai_ag_cacheclear(
-    Function(XLL_FPX, "_xll_ag_cacheclear", "AG.CACHECLEAR")
+    Function(XLL_FPX, "_xll_rrag_cacheclear", "RRAG.CACHECLEAR")
         .Arguments({})
         .FunctionHelp("Drop cached CSV and custom-range tables, then return 1. "
                       "Use it after editing a table CSV.")
         .Category(kCategory));
-extern "C" _FP12* WINAPI xll_ag_cacheclear(void) {
+extern "C" _FP12* WINAPI xll_rrag_cacheclear(void) {
 #pragma XLLEXPORT
     ensure_init();
     return to_fpx(ag::cache_clear());
 }
 
 static AddIn xai_ag_lasterror(
-    Function(XLL_LPOPER, "_xll_ag_lasterror", "AG.LASTERROR")
+    Function(XLL_LPOPER, "_xll_rrag_lasterror", "RRAG.LASTERROR")
         .Arguments({})
         .FunctionHelp(
             "Why the last age-grading call failed. A column of #NUM! values is "
             "much easier to diagnose with this in the next cell.")
         .Category(kCategory));
-extern "C" LPOPER WINAPI xll_ag_lasterror(void) {
+extern "C" LPOPER WINAPI xll_rrag_lasterror(void) {
 #pragma XLLEXPORT
     ensure_init();
     return text_result(ag::last_error().empty() ? "no error" : ag::last_error());
 }
 
 static AddIn xai_ag_version(
-    Function(XLL_LPOPER, "_xll_ag_version", "AG.VERSION")
+    Function(XLL_LPOPER, "_xll_rrag_version", "RRAG.VERSION")
         .Arguments({})
         .FunctionHelp("Add-in version and the number of built-in editions.")
         .Category(kCategory));
-extern "C" LPOPER WINAPI xll_ag_version(void) {
+extern "C" LPOPER WINAPI xll_rrag_version(void) {
 #pragma XLLEXPORT
     ensure_init();
     return text_result(ag::version_string());

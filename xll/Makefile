@@ -15,7 +15,7 @@
 # Requirements: sudo apt install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 # The xll library must be checked out at $(XLL_DIR); see README.md.
 
-NAME      := xll_age_grading
+NAME      := road_running_age_grading
 XLL_DIR   ?= $(HOME)/code/xll
 XLL       := x86_64-w64-mingw32-g++
 XLLCC     := x86_64-w64-mingw32-gcc
@@ -35,7 +35,7 @@ NFLAGS    := -std=c++17 -O2 -Wall -Wextra -Wno-unused-parameter -I src -I test
 # The library sources every XLL needs, plus the Excel4 compatibility shim
 # (mingw cannot link XLCALL32.LIB, so excel4_compat.cpp supplies Excel4/Excel4v).
 LIBOBJS   := auto.o dllmain.o error.o XLCALL.o defines.o excel4_compat.o
-OBJS      := age_grading.o ag_core.o ag_api.o $(LIBOBJS)
+OBJS      := road_running_age_grading.o ag_core.o ag_api.o $(LIBOBJS)
 
 .PHONY: all test xll verify tables expectations sample clean shim
 
@@ -53,7 +53,7 @@ $(NAME).xll: $(OBJS) $(NAME).def
 	$(XLL) -shared -o $@ $(OBJS) $(NAME).def \
 	    -Wl,-s -lshlwapi -ladvapi32 -static-libgcc -static-libstdc++
 
-age_grading.o: src/xll_age_grading.cpp $(HDR)
+road_running_age_grading.o: src/road_running_age_grading.cpp $(HDR)
 	$(XLL) $(XLLFLAGS) -c $< -o $@
 ag_core.o: src/ag_core.cpp $(HDR)
 	$(XLL) $(XLLFLAGS) -c $< -o $@
@@ -75,9 +75,9 @@ excel4_compat.o: excel4_compat.cpp
 
 # ---------------------------------------------------------------- verify ----
 verify: $(NAME).xll
-	@echo "--- exports (all xll_ag_* plus the Excel entry points) ---"
+	@echo "--- exports (all xll_rrag_* plus the Excel entry points) ---"
 	@x86_64-w64-mingw32-objdump -p $(NAME).xll | awk '/Export Tables/,0' \
-	  | grep -oE 'xll_ag_[a-z]+|xlAuto[A-Za-z0-9]+|XLCallVer|xll_alert_level_' | sort -u
+	  | grep -oE 'xll_rrag_[a-z]+|xlAuto[A-Za-z0-9]+|XLCallVer|xll_alert_level_' | sort -u
 	@echo "--- every symbol named in $(NAME).def must actually be exported ---"
 	@x86_64-w64-mingw32-objdump -p $(NAME).xll \
 	  | sed -n '/Ordinal\/Name Pointer/,/^$$/p' | awk '{print $$NF}' > .exports.tmp

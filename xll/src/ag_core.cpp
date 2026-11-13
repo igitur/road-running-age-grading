@@ -956,7 +956,7 @@ std::vector<std::string> Registry::names() {
         for (const auto& kv : file_) out.push_back(kv.first);
     }
     // Sidecar CSVs appear here once they have been loaded at least once; the
-    // add-in's AG.TABLES() reports the editions it can serve right now.
+    // add-in's RRAG.TABLES() reports the editions it can serve right now.
     std::sort(out.begin(), out.end());
     out.erase(std::unique(out.begin(), out.end()), out.end());
     return out;

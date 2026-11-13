@@ -46,7 +46,7 @@ $ cd age-grading/xll
 $ x86_64-w64-mingw32-g++ -std=c++20 -D_M_X64 -DXLL_VERSION=12 \
     -DUNICODE -D_UNICODE -Dpascal=__stdcall -D_cdecl=__cdecl \
     -I shim -I /tmp/xll-pristine -I src \
-    -c src/xll_age_grading.cpp -o /dev/null
+    -c src/road_running_age_grading.cpp -o /dev/null
 ```
 
 The transcript, patches applied cumulatively (nothing else changed):
@@ -247,7 +247,7 @@ exportable; it does not export it. The project must name it in its `.def`:
     xll_alert_level_
 ```
 
-`make verify` now checks this class of mistake: it parses `xll_age_grading.def`
+`make verify` now checks this class of mistake: it parses `road_running_age_grading.def`
 and fails if any listed symbol is absent from the built PE export table — a check
 that did not exist when the first build of this add-in was made, and that build
 was missing exactly this symbol. Had that binary reached Excel it would have
@@ -311,8 +311,8 @@ compile.
 - `XLCallVer()` — declared and called by the library, defined by nobody. The
   add-in returns `0x0c00`.
 - Exports via `.def` instead of `#pragma comment(linker, "/export:…")`, which
-  mingw ignores. Hence `xll_age_grading.def` and the leading `_` in every
-  procedure name (`"_xll_ag_grade"` → Excel resolves `xll_ag_grade`).
+  mingw ignores. Hence `road_running_age_grading.def` and the leading `_` in every
+  procedure name (`"_xll_rrag_grade"` → Excel resolves `xll_rrag_grade`).
 
 ---
 

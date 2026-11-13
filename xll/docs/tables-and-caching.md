@@ -8,11 +8,11 @@ tables live, and what stops us paying for it on every recalculation.
 | Tier | Storage | Loaded | Cached | Who it is for |
 | --- | --- | --- | --- | --- |
 | 1 | **compiled into the .xll** | never — it is code | n/a | the four published editions: 2025, 2020, 2015, 2010 |
-| 2 | **`<name>.csv` beside the .xll** | first use | until `AG.CACHECLEAR()` | club handicaps, trial tables, a future edition |
+| 2 | **`<name>.csv` beside the .xll** | first use | until `RRAG.CACHECLEAR()` | club handicaps, trial tables, a future edition |
 | 3 | **a range passed as the 5th argument** | first call | keyed by a hash of the range | one-off tables, what-if experiments |
 
 Everything is held in one process-wide registry, behind a mutex, with counters
-you can read from a cell (`AG.CACHEINFO()`).
+you can read from a cell (`RRAG.CACHEINFO()`).
 
 ## Tier 1 — compiled in
 
@@ -57,10 +57,10 @@ F,10 k,28:46,1,0.98,0.95,0.92,0.88,0.83,0.78
 ```
 
 ```
-=AG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181, "bellville-handicap")
+=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181, "bellville-handicap")
 ```
 
-Loaded on first use and kept. After editing a CSV, run `=AG.CACHECLEAR()` (or
+Loaded on first use and kept. After editing a CSV, run `=RRAG.CACHECLEAR()` (or
 restart Excel). Deleting the file has no effect until the cache is cleared; that
 is deliberate — a shared workbook must not change its answers because someone
 renamed a file mid-session.
@@ -84,15 +84,15 @@ poisoning memory by dragging a volatile range into every cell.
 
 Sizes: one 44-row × 99-column table is ~4 300 cells ≈ 100 kB as
 `Cell` objects. Sixteen of those is ~2 MB — acceptable for a desktop add-in.
-Hits and misses are visible in `=AG.CACHEINFO()`.
+Hits and misses are visible in `=RRAG.CACHEINFO()`.
 
 ## What is cached, precisely
 
 | Lookup | Key | Lifetime |
 | --- | --- | --- |
 | edition by name (`"2025"`) | the name | materialised once at start-up from the compiled arrays |
-| CSV table | the name | until `AG.CACHECLEAR()` |
-| ad hoc range | content hash | LRU, 16 entries, until `AG.CACHECLEAR()` |
+| CSV table | the name | until `RRAG.CACHECLEAR()` |
+| ad hoc range | content hash | LRU, 16 entries, until `RRAG.CACHECLEAR()` |
 
 A **failed** lookup is not cached, so fixing a typo in a table name works
 immediately.
@@ -102,14 +102,14 @@ immediately.
 Excel can recalculate on several threads. The registry is protected by a mutex
 and the functions are **not** registered as thread-safe (`Args::ThreadSafe()` is
 deliberately absent), so Excel calls them on its calculation thread. That is the
-conservative choice: it keeps the result buffers and `AG.LASTERROR()`'s buffer
+conservative choice: it keeps the result buffers and `RRAG.LASTERROR()`'s buffer
 single-threaded, at no measurable cost — a lookup is a few hundred nanoseconds.
 
 ## Number formats worth knowing
 
 - Factors are stored as `float` (published precision is 4 decimal places, float
   carries 7 significant digits, so nothing is lost) and are computed in `double`.
-- Open standards are stored in **seconds**; `AG.STANDARD` converts to an Excel
+- Open standards are stored in **seconds**; `RRAG.STANDARD` converts to an Excel
   time value on the way out.
 - The generated header rounds nothing: `data/mldr_road.json` holds the published
   values exactly, and `gen_tables.py --check` fails CI if the header and the JSON

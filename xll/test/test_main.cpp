@@ -3,7 +3,7 @@
 // Built and run on Linux by `make test`; it links the same ag_core.cpp and
 // ag_api.cpp that go into the .xll, so the arithmetic and the argument handling
 // under test are exactly what Excel will call. The only untested code is the
-// thin XLOPER12 conversion in src/xll_age_grading.cpp, which cannot run without
+// thin XLOPER12 conversion in src/road_running_age_grading.cpp, which cannot run without
 // Excel (see xll/README.md).
 #include <cmath>
 #include <cstdio>
