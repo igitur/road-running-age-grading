@@ -622,7 +622,10 @@ def sheet_one_call(wb: Workbook) -> None:
         return row + max(n, 2) + 1
 
     row = r + 2
-    row = column(ws, row, "RRAG.TABLES", "(none)", "=RRAG.TABLES()", [2025, 2020, 2015, 2010],
+    # derived, like the TABLEINFO rows: add an edition to the data and this
+    # expectation follows instead of turning into a stale MISMATCH
+    editions = sorted({int(t.meta["year"]) for t in T.values()}, reverse=True)
+    row = column(ws, row, "RRAG.TABLES", "(none)", "=RRAG.TABLES()", editions,
                  "The editions compiled into this build, newest first. Any of them can be the "
                  "fifth argument of a grading function. Already a column: one edition per row.")
     def tableinfo(year: int) -> list:
