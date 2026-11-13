@@ -1,7 +1,7 @@
 # Age-grading docs + reference implementation.
 # `make check` is what CI (or a future table revision) should run.
 
-PY ?= .venv/bin/python
+PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 UPSTREAM := https://github.com/AlanLyttonJones/Age-Grade-Tables.git
 
 .PHONY: help all setup fetch unpack data verify curve wiki check check-links clean
