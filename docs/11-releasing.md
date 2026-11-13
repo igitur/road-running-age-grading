@@ -19,7 +19,7 @@ gets a version like `0.1.dev21+ga620381a3`, which is not publishable.
 | --- | --- |
 | `brrag-<version>-py3-none-any.whl` | The library, the CLI, and the 22-event × 96-age tables for four editions, inside the package. 39 kB. |
 | `brrag-<version>.tar.gz` | The source distribution. |
-| `brrag-<version>-excel.zip` | The add-in and the workbook that demonstrates it, as one download: `road_running_age_grading.xll` (1 334 784 B, PE32+ x86-64, built in CI) and `age-grading-sample.xlsx` (the workbook from `xll/examples/`, rebuilt and compared with the committed copy at that tag). Unzip both into a folder, then add the `.xll` through **File → Options → Add-ins → Go → Browse**. |
+| `brrag-<version>-excel.zip` | The add-in and the workbook that demonstrates it, as one download: `road_running_age_grading.xll` (1 334 784 B, PE32+ x86-64, built in CI), `age-grading-sample.xlsx`, plus `LICENSE` and `THIRD-PARTY.md`, because MIT requires its notice in every copy and the binary embeds the MIT-licensed xll framework and the GPLv3+exception GCC runtime (the workbook from `xll/examples/`, rebuilt and compared with the committed copy at that tag). Unzip both into a folder, then add the `.xll` through **File → Options → Add-ins → Go → Browse**. |
 | `SHA256SUMS` | Digests of the three above. |
 
 The `.xll` is cross-compiled on the runner with mingw-w64 against the `xll`
@@ -166,3 +166,14 @@ workbook and the Excel add-in. `tools/wheel_smoke.py` asserts the long
 description is markdown, says `pip install brrag`, and is not the repository
 README, so a careless `readme =` edit fails the release rather than the landing
 page.
+
+## What PyPI distributes, and what it does not
+
+`MANIFEST.in` keeps two files out of the sdist: `page.html` (Howard Grubb's
+calculator page) and `MLDRRoadFactors2025.xlsm` (his factors workbook). Both stay
+in the repository as verification inputs — `data/source_sha256.txt` pins them and
+`make fetch` re-downloads them — but neither carries a licence grant, so neither
+may sit inside a tarball whose metadata says MIT. The release workflow fails if
+either reappears, and also fails if `THIRD-PARTY.md` is missing. The values they
+contain are covered separately: the upstream table repository is CC0-1.0, so the
+data in `data/mldr_road.json` needs no permission, only credit.

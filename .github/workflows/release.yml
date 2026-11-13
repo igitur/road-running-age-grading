@@ -53,7 +53,16 @@ jobs:
           junk = [n for n in names if n.endswith((".xll", ".zip", ".whl", ".o"))]
           if junk:
               sys.exit(f"{sdist} contains build outputs: {junk[:5]}")
-          print(f"  {sdist}: {len(names)} entries, no binaries")
+          # Third-party files with a byline and no licence grant: they stay in the
+          # repository, pinned by hash, but inside an MIT-labelled tarball they
+          # would be an overstatement. MANIFEST.in excludes them; prove it.
+          unlicensed = [n for n in names
+                        if n.endswith(("page.html", "MLDRRoadFactors2025.xlsm"))]
+          if unlicensed:
+              sys.exit(f"{sdist} redistributes unlicensed third-party files: {unlicensed}")
+          if not any(n.endswith("THIRD-PARTY.md") for n in names):
+              sys.exit(f"{sdist} is missing THIRD-PARTY.md")
+          print(f"  {sdist}: {len(names)} entries, no binaries, no unlicensed files")
           PY
 
       - name: The version must be the tag
@@ -129,13 +138,20 @@ jobs:
           version = sys.argv[1]
           target = f"assets/brrag-{version}-excel.zip"
           with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              # MIT: "the copyright notice and this permission notice shall be
+              # included in all copies". A bare .xll in a zip does not satisfy that,
+              # and the binary also embeds the MIT-licensed xll framework and the
+              # GPLv3+RLE GCC runtime, which THIRD-PARTY.md accounts for.
               z.write("xll/road_running_age_grading.xll", "road_running_age_grading.xll")
               z.write("xll/examples/age-grading-sample.xlsx", "age-grading-sample.xlsx")
+              z.write("LICENSE", "LICENSE")
+              z.write("THIRD-PARTY.md", "THIRD-PARTY.md")
           with zipfile.ZipFile(target) as z:
               names = z.namelist()
               for i in z.infolist():
                   print(f"  {i.filename:32} {i.file_size:>9,} -> {i.compress_size:>8,}")
-          assert names == ["road_running_age_grading.xll", "age-grading-sample.xlsx"], names
+          assert names == ["road_running_age_grading.xll", "age-grading-sample.xlsx",
+                           "LICENSE", "THIRD-PARTY.md"], names
           PY
           ls -l dist/ assets/
 

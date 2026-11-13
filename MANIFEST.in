@@ -1,0 +1,10 @@
+# The sdist must not carry files this project has no licence to redistribute.
+#
+# Almost everything is taken from git by setuptools-scm, so exclusions have to be
+# stated here. `page.html` (Howard Grubb's calculator page) and the factors
+# workbook are third-party artefacts with a byline and no licence grant: they stay
+# in the repository as verification inputs, pinned by hash in
+# data/source_sha256.txt, and `make fetch` re-downloads them, but they do not
+# belong inside a tarball whose metadata says MIT.
+exclude page.html
+exclude MLDRRoadFactors2025.xlsm

@@ -18,7 +18,8 @@ One formula, 180 age grades, spilled down the column.
 ---
 
 The released `.xll` travels with the sample workbook in
-`brrag-<version>-excel.zip` on the GitHub release, built by
+`brrag-<version>-excel.zip` on the GitHub release (the `.xll`, the sample workbook,
+`LICENSE` and `THIRD-PARTY.md`), built by
 `release.yml` from the same sources and the same pinned framework commit. The
 link uses `-Wl,--no-insert-timestamp`, so a rebuild of a tagged commit yields a
 byte-identical binary and the release's `SHA256SUMS` can be checked against your

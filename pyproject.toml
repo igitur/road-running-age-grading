@@ -12,7 +12,9 @@ description = "BRRAG - Botha's Road Running Age Grading on the USATF MLDR 2025 t
 readme = "README.pypi.md"
 requires-python = ">=3.10"
 license = "MIT"
-license-files = ["LICENSE"]
+# Both files travel into dist-info/licenses/, so anyone who installs the wheel
+# sees the third-party terms without opening the repository.
+license-files = ["LICENSE", "THIRD-PARTY.md"]
 authors = [{ name = "Francois Botha", email = "igitur@gmail.com" }]
 keywords = ["running", "age-grading", "usatf", "mldr", "road-running", "athletics"]
 classifiers = [

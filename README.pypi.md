@@ -222,9 +222,14 @@ up in the repository:
 
 ## Licence and attribution
 
-The code and prose are MIT. The age factors are **not** mine and are not
-relicensed: they are Alan Jones's USATF MLDR 2025 tables, with single-age bests
-by Tom Bernhard, approved by the USATF Masters Long Distance Running committee,
-and the calculator they ship with is Howard Grubb's. The artefacts are committed
-unmodified, with their SHA-256 sums, in the repository. If you publish a
+The code and prose are **MIT**. The age factors are **not** mine and are not
+relicensed: they are Alan Jones's USATF MLDR tables, with single-age bests by Tom
+Bernhard, approved by the USATF Masters Long Distance Running committee, and the
+calculator they ship with is Howard Grubb's. The upstream table repository is
+**CC0-1.0**, so the values in `brrag/data/mldr_road.json` carry no condition —
+the credit below is scholarly, not legal.
+
+Every third-party component is listed, with its licence and where it lands, in
+[THIRD-PARTY.md](https://github.com/igitur/road-running-age-grading/blob/main/THIRD-PARTY.md);
+this wheel ships it as `dist-info/licenses/THIRD-PARTY.md`. If you publish a
 percentage, quote the table year and credit the tables to their authors.

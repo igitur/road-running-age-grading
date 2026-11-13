@@ -164,6 +164,12 @@ has the numbers.
 
 ## Licence / attribution
 
+**Code and prose: MIT.** Third-party components keep their own terms — the factor
+tables are CC0-1.0, the xll framework is MIT, the GCC runtime inside the .xll is
+GPLv3 with the Runtime Library Exception, and the verification inputs are not
+ours to license. [THIRD-PARTY.md](THIRD-PARTY.md) lists every one of them with the
+evidence.
+
 Tables compiled by **Alan Jones** (alanjones@grests.com) with single-age bests
 by **Tom Bernhard**; approved by the USATF MLDR Council. Calculator by
 **Howard Grubb** (howardgrubb.co.uk). Upstream repository:
