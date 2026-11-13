@@ -25,11 +25,14 @@ SRC       := src/ag_core.cpp src/ag_api.cpp
 HDR       := src/ag_core.h src/ag_api.h src/ag_tables_generated.h
 
 INC       := -I shim -I $(XLL_DIR) -I src
+# Paths are canonicalised so the binary does not depend on where the sources sit:
+# __FILE__ strings otherwise land in .rdata and make every build unique.
+CANON     := -ffile-prefix-map=$(XLL_DIR)=/xll -ffile-prefix-map=$(CURDIR)=/src
 XLLFLAGS  := -std=c++20 -O2 -D_M_X64 -DXLL_VERSION=12 -DUNICODE -D_UNICODE \
-             -Dpascal=__stdcall -D_cdecl=__cdecl $(INC) \
+             -Dpascal=__stdcall -D_cdecl=__cdecl $(CANON) $(INC) \
              -Wno-unknown-pragmas -Wno-unused-parameter -Wno-attributes
 CFLAGS    := -std=gnu17 -O2 -D_M_X64 -DXLL_VERSION=12 -DUNICODE -D_UNICODE \
-             -Dpascal=__stdcall $(INC) -Wno-unknown-pragmas
+             -Dpascal=__stdcall $(CANON) $(INC) -Wno-unknown-pragmas
 NFLAGS    := -std=c++17 -O2 -Wall -Wextra -Wno-unused-parameter -I src -I test
 
 # The library sources every XLL needs, plus the Excel4 compatibility shim
