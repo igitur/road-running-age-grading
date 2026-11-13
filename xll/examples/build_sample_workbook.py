@@ -1161,8 +1161,10 @@ def sheet_times(wb: Workbook) -> None:
     ]):
         row = 11 + i
         src = 5 + i
-        show_call(ws, f"A{row}", f'=RRAG.GRADE("M",40,10,B{src},"40:00")')
-        live(ws, f"B{row}", f'=RRAG.GRADE("M",40,10,B{src},"40:00")', PCT_FMT)
+        # B{src} is the TIME argument. A fifth argument is the table, so a stray
+        # time literal there resolves as a table name and returns #NUM!.
+        show_call(ws, f"A{row}", f'=RRAG.GRADE("M",40,10,B{src})')
+        live(ws, f"B{row}", f'=RRAG.GRADE("M",40,10,B{src})', PCT_FMT)
         expected(ws, f"C{row}", round(grade("M", 40, 10.0, 2380).percent, 4), PCT_FMT)
         c = ws[f"D{row}"]
         c.value = f'=IF(ABS(B{row}-C{row})<0.0001,"OK","MISMATCH")'
@@ -1535,6 +1537,7 @@ EXPECTED_SHEETS = ["Start here", "Functions", "1 Squad", "2 One call", "3 Editio
 
 def validate(wb) -> list[str]:
     problems: list[str] = []
+    problems.extend(check_calls(wb))          # every RRAG.* call has a sane signature
     if wb.sheetnames != EXPECTED_SHEETS:
         problems.append(f"sheet manifest mismatch: built {wb.sheetnames}, "
                         f"expected {EXPECTED_SHEETS}")
@@ -1622,6 +1625,102 @@ def validate(wb) -> list[str]:
                             break
     return problems
 
+
+
+# ---------------------------------------------------------------------------
+# a build-time check on the formulas themselves
+# ---------------------------------------------------------------------------
+# Without Excel, every live RRAG.* formula in this workbook is only ever written,
+# never evaluated - and guard_verdicts() hides a MISMATCH behind a blank live
+# cell. So two whole-workbook bugs shipped before this existed: a percent in
+# 0-100 units inside a 00.00% cell, and a time literal ("40:00") in the table
+# slot, which Excel answered with #NUM! on every row. Both are visible by reading
+# the formula text, so check the text.
+#
+#   name -> (min args, max args, index of the table argument or None)
+CALLS = {
+    "RRAG.GRADE": (3, 5, 4),
+    "RRAG.GRADEDTIME": (3, 5, 4),
+    "RRAG.BLOCK": (3, 5, 4),
+    "RRAG.TIMEFORPCT": (3, 5, 4),
+    "RRAG.FACTOR": (2, 4, 3),
+    "RRAG.STANDARD": (2, 4, 3),
+    "RRAG.TABLEINFO": (0, 1, 0),
+    "RRAG.TABLES": (0, 0, None),
+    "RRAG.CACHEINFO": (0, 0, None),
+    "RRAG.CACHECLEAR": (0, 0, None),
+    "RRAG.LASTERROR": (0, 0, None),
+    "RRAG.VERSION": (0, 0, None),
+}
+
+# A table argument may be a year, "latest", "<name>.csv", "<authority> <year>", a
+# range or a cell. It is never a clock time, and that is the mistake to catch.
+_TIME_LIKE = re.compile(r'^\s*"?\s*\d{1,3}:[0-5]\d(:[0-5]\d)?\s*"?\s*$')
+
+
+def _split_args(text: str) -> list[str]:
+    """Split an argument list on top-level commas, respecting "" and () nesting."""
+    out, depth, quoted, cur = [], 0, False, []
+    for ch in text:
+        if ch == '"':
+            quoted = not quoted
+        elif not quoted and ch in "([{":
+            depth += 1
+        elif not quoted and ch in ")]}":
+            depth -= 1
+        elif ch == "," and not quoted and depth == 0:
+            out.append("".join(cur)); cur = []; continue
+        cur.append(ch)
+    if "".join(cur).strip() or out:
+        out.append("".join(cur))
+    return [a.strip() for a in out]
+
+
+def check_calls(wb) -> list[str]:
+    """Every RRAG.* call in the workbook must have a plausible signature."""
+    problems: list[str] = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for c in row:
+                v = c.value
+                if isinstance(v, ArrayFormula):        # a live, spilled formula
+                    text = "=" + v.text
+                elif isinstance(v, str) and v.lstrip().startswith("="):
+                    text = v                            # a verdict, or a quoted doc line
+                else:
+                    continue                            # prose: "RRAG.GRADE(...)" in a note
+                for m in re.finditer(r"(RRAG\.[A-Z]+)\(", text):
+                    name = m.group(1)
+                    if name not in CALLS:
+                        problems.append(f"{ws.title}!{c.coordinate}: unknown function {name}")
+                        continue
+                    # walk to the matching close paren
+                    i, depth = m.end(), 1
+                    while i < len(text) and depth:
+                        ch = text[i]
+                        if ch == '"':
+                            i += 1
+                            while i < len(text) and text[i] != '"':
+                                i += 1
+                        elif ch == "(":
+                            depth += 1
+                        elif ch == ")":
+                            depth -= 1
+                        i += 1
+                    args = _split_args(text[m.end():i - 1])
+                    lo, hi, tidx = CALLS[name]
+                    if not lo <= len(args) <= hi:
+                        problems.append(
+                            f"{ws.title}!{c.coordinate}: {name} takes {lo}-{hi} arguments, "
+                            f"got {len(args)}: {text[m.start():i]}")
+                        continue
+                    if tidx is not None and len(args) > tidx:
+                        if _TIME_LIKE.match(args[tidx]):
+                            problems.append(
+                                f"{ws.title}!{c.coordinate}: {name} argument {tidx + 1} is the "
+                                f"table, but got the clock time {args[tidx]!r} "
+                                f"(did the time argument move?)")
+    return problems
 
 
 def guard_verdicts(wb) -> None:
