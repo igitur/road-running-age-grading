@@ -1,0 +1,19 @@
+# virtualenvs and caches
+.venv/
+__pycache__/
+*.pyc
+
+# unzipped copies of source artefacts (regenerate with `make unpack`)
+raw/
+
+# generated documentation HTML (regenerate with `make wiki`)
+wiki/
+
+# upstream clone for the standards cross-check (regenerate with `make fetch`)
+repo/
+
+# extracted text of upstream PDFs
+notes/
+
+# editable-install metadata
+*.egg-info/

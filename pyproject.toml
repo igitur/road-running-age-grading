@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aggrade"
+version = "2025.1"
+description = "Road-running age grading on the USATF MLDR 2025 tables"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+keywords = ["running", "age-grading", "usatf", "mldr", "road-running"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Intended Audience :: Other Audience",
+  "Topic :: Games/Entertainment",
+]
+# The library itself is stdlib-only. The tools need more; see requirements-tools.txt.
+
+[project.scripts]
+aggrade = "aggrade.cli:main"
+
+[tool.setuptools]
+packages = ["aggrade"]
+
+# The tables live in ../data/ and are read from there (aggrade.core.DEFAULT_DATA).
+# This package is meant to be installed in editable/source mode, not as a wheel.
