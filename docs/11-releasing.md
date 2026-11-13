@@ -56,6 +56,11 @@ The workbook's twelve live formulas need the add-in loaded; without it they show
    --generate-notes --verify-tag`. If a release for that tag already exists the
    job **fails** instead of overwriting it: bump the version rather than reuse a
    tag someone may already have linked.
+   `dist/` holds **only** what PyPI may receive — the wheel and the sdist. The
+   Excel bundle is built into `assets/`, because `gh-action-pypi-publish` uploads
+   every file in `dist/` and rejects a stray archive (`InvalidDistribution: Too
+   many top-level members in sdist archive`). The two travel as separate
+   artifacts and are joined again on the release page.
 3. **pypi** — trusted publishing, gated on the repository variable
    `PYPI_ENABLED` (see below). On success it polls the PyPI JSON API until the
    version is really listed, so a green run means "downloadable", not "uploaded".

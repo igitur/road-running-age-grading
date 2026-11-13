@@ -109,10 +109,11 @@ jobs:
           # asset is known to match this commit rather than merely to exist.
           python xll/examples/build_sample_workbook.py --check
           version="${{ steps.version.outputs.version }}"
+          mkdir -p assets
           python - "$version" <<'PY'
           import sys, zipfile
           version = sys.argv[1]
-          target = f"dist/brrag-{version}-excel.zip"
+          target = f"assets/brrag-{version}-excel.zip"
           with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
               z.write("xll/road_running_age_grading.xll", "road_running_age_grading.xll")
               z.write("xll/examples/age-grading-sample.xlsx", "age-grading-sample.xlsx")
@@ -122,13 +123,23 @@ jobs:
                   print(f"  {i.filename:32} {i.file_size:>9,} -> {i.compress_size:>8,}")
           assert names == ["road_running_age_grading.xll", "age-grading-sample.xlsx"], names
           PY
-          ls -l dist/
+          ls -l dist/ assets/
 
+      # Two artifacts on purpose: `dist` is exactly what twine may upload, and
+      # gh-action-pypi-publish rejects anything else in it (a stray .zip is read
+      # as an sdist: "Too many top-level members in sdist archive").
       - name: Upload the distribution
         uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
+
+      - name: Upload the Excel bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: assets
+          path: assets/
           if-no-files-found: error
 
   github-release:
@@ -144,12 +155,16 @@ jobs:
           name: dist
           path: dist
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: assets
+          path: assets
+
       - name: Checksums
         run: |
           set -euo pipefail
-          cd dist
           # Named explicitly: `sha256sum *` would include the file being written.
-          sha256sum *.whl *.tar.gz *.zip > SHA256SUMS
+          sha256sum dist/* assets/* > SHA256SUMS
           cat SHA256SUMS
 
       - name: Create the release
@@ -162,7 +177,7 @@ jobs:
             echo "::error::a release for $GITHUB_REF_NAME already exists - bump the version instead of reusing a tag"
             exit 1
           fi
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          gh release create "$GITHUB_REF_NAME" dist/* assets/* SHA256SUMS \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
             --verify-tag
