@@ -30,9 +30,14 @@ def ui_seconds(secs: float) -> float:
 
 
 def ui_percent(time_s: float, age_standard_s: float) -> float:
-    """The percentage exactly as the calculator displays it (2 dp)."""
-    raw = 100.0 * ui_seconds(age_standard_s) / time_s
-    return math.floor(raw * 100 + 0.5) / 100
+    """The grade, out of 1, exactly as the calculator displays it (2 dp).
+
+    The page shows 68.49 %; this returns 0.6849 so it matches
+    `Grade.percent` and Excel's percent number format. Multiply by 100 to
+    print a percentage.
+    """
+    raw = ui_seconds(age_standard_s) / time_s
+    return math.floor(raw * 10000 + 0.5) / 10000
 
 
 def parse_time(text: str) -> float:

@@ -109,13 +109,13 @@ void test_ground_truth() {
         if (std::fabs(factor - e.factor) > 2e-6 ||
             std::fabs(age_std - e.age_standard_s) > 0.02 ||
             std::fabs(graded - e.graded_s) > 0.02 ||
-            std::fabs(percent - e.percent) > 0.002) {
+            std::fabs(percent - e.percent) > 2e-5) {
             std::printf("  case %d: %s age %g dist %g time %g\n", i, e.sex, e.age,
                         e.distance_km, e.time_s);
             near(factor, e.factor, 2e-6, "factor", __LINE__);
             near(age_std, e.age_standard_s, 0.02, "age standard", __LINE__);
             near(graded, e.graded_s, 0.02, "graded", __LINE__);
-            near(percent, e.percent, 0.01, "percent", __LINE__);
+            near(percent, e.percent, 1e-4, "percent", __LINE__);
         } else {
             OK(true);
         }
@@ -126,36 +126,36 @@ void test_ground_truth() {
 void test_smoke() {
     section("smoke: the canonical cases");
     const ag::Out g = ag::grade(txt("M"), num(40), num(10.0), num(2400), txt("2025"));
-    NEAR(g.v[0], 68.49, 0.01);
+    NEAR(g.v[0], 0.6849, 1e-4);
 
     const ag::Out f = ag::grade(txt("F"), num(56), num(10.0), num(2400), txt("2025"));
-    NEAR(f.v[0], 87.42, 0.01);
+    NEAR(f.v[0], 0.8742, 1e-4);
 
     const ag::Out m = ag::grade(txt("M"), num(75), txt("Marathon"), num(4 * 3600 + 30 * 60),
                                 txt("2025"));
-    NEAR(m.v[0], 65.13, 0.01);
+    NEAR(m.v[0], 0.6513, 1e-4);
 
     const ag::Out y = ag::grade(txt("F"), num(12), txt("5k"), num(22 * 60), txt("2025"));
-    NEAR(y.v[0], 71.58, 0.01);
+    NEAR(y.v[0], 0.7158, 1e-4);
 
     // above 100% is a real answer, not an error
     const ag::Out hi = ag::grade(txt("M"), num(65), num(10.0), num(32 * 60), txt("2025"));
-    NEAR(hi.v[0], 106.30, 0.01);
+    NEAR(hi.v[0], 1.0630, 1e-4);
 
     // a time given as text parses like the calculator
     const ag::Out ts = ag::grade(txt("M"), num(40), num(10.0), txt("40:00"), txt("2025"));
-    NEAR(ts.v[0], 68.49, 0.01);
+    NEAR(ts.v[0], 0.6849, 1e-4);
 
     // an Excel time serial is the same thing
     const ag::Out ser = ag::grade(txt("M"), num(40), num(10.0), num(2400.0 / 86400.0),
                                   txt("2025"));
-    NEAR(ser.v[0], 68.49, 0.01);
+    NEAR(ser.v[0], 0.6849, 1e-4);
 
     // sex accepted in several spellings and as 1/0
     const ag::Out male = ag::grade(txt("Male"), num(40), num(10.0), num(2400), txt("2025"));
-    NEAR(male.v[0], 68.49, 0.01);
+    NEAR(male.v[0], 0.6849, 1e-4);
     const ag::Out one = ag::grade(num(1), num(40), num(10.0), num(2400), txt("2025"));
-    NEAR(one.v[0], 68.49, 0.01);
+    NEAR(one.v[0], 0.6849, 1e-4);
 }
 
 // ---------------------------------------------------------------------------
@@ -165,17 +165,17 @@ void test_vectors() {
     const ag::Out g = ag::grade(txt("M"), vec({25, 35, 45, 55}), num(10.0), num(32 * 60),
                                txt("2025"));
     OK(g.rows == 4 && g.cols == 1);
-    NEAR(g.v[0], 82.50, 0.01);
-    NEAR(g.v[1], 83.26, 0.01);
-    NEAR(g.v[2], 89.08, 0.01);
-    NEAR(g.v[3], 96.93, 0.01);
+    NEAR(g.v[0], 0.8250, 1e-4);
+    NEAR(g.v[1], 0.8326, 1e-4);
+    NEAR(g.v[2], 0.8908, 1e-4);
+    NEAR(g.v[3], 0.9693, 1e-4);
 
     // full vectors, every argument the same length
     const ag::Out h = ag::grade(svec({"M", "F", "M"}), vec({30, 45, 60}),
                                 svec({"10k", "Marathon", "5k"}),
                                 vec({2400, 4 * 3600, 30 * 60}), txt("2025"));
     OK(h.rows == 3);
-    NEAR(h.v[0], 71.92 + 0.0, 25.0);          // loose: just prove it is a number
+    NEAR(h.v[0], 0.7192, 0.25);               // loose: just prove it is a number
     OK(!std::isnan(h.v[0]) && !std::isnan(h.v[1]) && !std::isnan(h.v[2]));
 
     // mismatched lengths must fail loudly, naming both arguments
@@ -275,7 +275,7 @@ void test_adhoc() {
     const ag::Value tbl = ag::Value::of_matrix(matrix_table());
     // M, 40, 10 km, 40:00 -> factor 0.9, standard 1584 -> 100*1760/2400
     const ag::Out g = ag::grade(txt("M"), num(40), num(10.0), num(2400), tbl);
-    NEAR(g.v[0], 100.0 * (1584.0 / 0.9) / 2400.0, 1e-3);
+    NEAR(g.v[0], (1584.0 / 0.9) / 2400.0, 1e-3);
 
     // the same range is parsed once: a second call is a cache hit
     const ag::CacheStats before = ag::Registry::instance().stats();
@@ -287,7 +287,7 @@ void test_adhoc() {
 
     // age interpolation between the supplied ages, and clamping outside them
     const ag::Out a35 = ag::grade(txt("M"), num(35), num(10.0), num(2400), tbl);
-    NEAR(a35.v[0], 100.0 * (1584.0 / 0.95) / 2400.0, 1e-3);
+    NEAR(a35.v[0], (1584.0 / 0.95) / 2400.0, 1e-3);
     const ag::Out a10 = ag::grade(txt("M"), num(10), num(10.0), num(2400), tbl);
     const ag::Out a30 = ag::grade(txt("M"), num(30), num(10.0), num(2400), tbl);
     NEAR(a10.v[0], a30.v[0], 1e-9);
@@ -301,13 +301,13 @@ void test_adhoc() {
         {"M", "10 k", "26:24", "0.9261", "0.8886", "0.8511", "0.8136", "0.7761"},
     });
     const ag::Value sp = ag::Value::of_matrix(sparse);
-    const double want61 = 100.0 * (1584.0 / (0.8136 + 0.2 * (0.7761 - 0.8136))) / 2400.0;
+    const double want61 = (1584.0 / (0.8136 + 0.2 * (0.7761 - 0.8136))) / 2400.0;
     NEAR(ag::grade(txt("M"), num(61), num(10.0), num(2400), sp).v[0], want61, 1e-3);
-    const double want64 = 100.0 * (1584.0 / (0.8136 + 0.8 * (0.7761 - 0.8136))) / 2400.0;
+    const double want64 = (1584.0 / (0.8136 + 0.8 * (0.7761 - 0.8136))) / 2400.0;
     NEAR(ag::grade(txt("M"), num(64), num(10.0), num(2400), sp).v[0], want64, 1e-3);
     // ...and still clamps above its own top age
     NEAR(ag::grade(txt("M"), num(80), num(10.0), num(2400), sp).v[0],
-         100.0 * (1584.0 / 0.7761) / 2400.0, 1e-3);
+         (1584.0 / 0.7761) / 2400.0, 1e-3);
 
     // the published editions keep the calculator's (99, 100] clamp
     NEAR(ag::factor_of(txt("M"), num(99.5), num(10.0), txt("2025")).v[0],
@@ -319,7 +319,7 @@ void test_adhoc() {
 
     // female rows are independent of male rows
     const ag::Out f = ag::grade(txt("F"), num(50), num(10.0), num(2400), tbl);
-    NEAR(f.v[0], 100.0 * (1726.0 / 0.75) / 2400.0, 1e-3);
+    NEAR(f.v[0], (1726.0 / 0.75) / 2400.0, 1e-3);
 
     // long format produces the same numbers as the matrix format
     const ag::Matrix longform = mat({
@@ -354,11 +354,11 @@ void test_adhoc() {
     });
     const ag::Value lsx = ag::Value::of_matrix(longsex);
     NEAR(ag::grade(txt("M"), num(30), num(10.0), num(2400), lsx).v[0],
-         100.0 * (1584.0 / 1.0) / 2400.0, 1e-3);
+         (1584.0 / 1.0) / 2400.0, 1e-3);
     NEAR(ag::grade(txt("F"), num(30), num(10.0), num(2400), lsx).v[0],
-         100.0 * (1726.0 / 1.0) / 2400.0, 1e-3);
+         (1726.0 / 1.0) / 2400.0, 1e-3);
     NEAR(ag::grade(txt("F"), num(50), num(10.0), num(2400), lsx).v[0],
-         100.0 * (1726.0 / 0.8) / 2400.0, 1e-3);
+         (1726.0 / 0.8) / 2400.0, 1e-3);
 
     // The distance grammar: <number><unit>, or one of the two named races.
     // Comparison ignores case, all whitespace and hyphens.
@@ -443,14 +443,14 @@ void test_adhoc() {
 // ---------------------------------------------------------------------------
 void test_inverse_and_block() {
     section("inverse function and the one-call block");
-    const ag::Out t = ag::time_for_pct(txt("M"), num(40), num(10.0), num(68.49), txt("2025"));
+    const ag::Out t = ag::time_for_pct(txt("M"), num(40), num(10.0), num(0.6849), txt("2025"));
     NEAR(t.v[0] * 86400.0, 2400.0, 1.0);
 
     const ag::Out b = ag::block(svec({"M", "F"}), vec({40, 56}), num(10.0),
                                 num(2400), txt("2025"));
     OK(b.rows == 2 && b.cols == 5);
-    NEAR(b.v[4], 68.49, 0.01);                 // row 0 percent
-    NEAR(b.v[5 + 4], 87.42, 0.01);             // row 1 percent
+    NEAR(b.v[4], 0.6849, 1e-4);                // row 0 percent, a fraction
+    NEAR(b.v[5 + 4], 0.8742, 1e-4);            // row 1 percent, a fraction
     NEAR(b.v[1] * 86400.0, 1584.0, 0.5);       // open standard
     NEAR(b.v[3] * 86400.0, 2400.0 * b.v[0], 0.5);   // graded = time * factor
 }
@@ -500,10 +500,10 @@ void test_sidecar_csv() {
     ag::init({dir});
     ag::set_last_error("");
     const ag::Out g = ag::grade(txt("M"), num(40), num(10.0), num(2400), txt("club"));
-    NEAR(g.v[0], 100.0 * (1584.0 / 0.9) / 2400.0, 1e-3);
+    NEAR(g.v[0], (1584.0 / 0.9) / 2400.0, 1e-3);
     OK(ag::Registry::instance().stats().file_tables == 1);
     const ag::Out f = ag::grade(txt("F"), num(50), num(10.0), num(2400), txt("club"));
-    NEAR(f.v[0], 100.0 * (1726.0 / 0.75) / 2400.0, 1e-3);
+    NEAR(f.v[0], (1726.0 / 0.75) / 2400.0, 1e-3);
 
     // the example table printed in docs/ad-hoc-tables.md must behave as documented
     const std::string vets = dir + "/bellville-vets.csv";
@@ -518,7 +518,7 @@ void test_sidecar_csv() {
     ag::Registry::instance().clear();
     const ag::Out vet = ag::grade(txt("M"), num(55), num(10.0), num(45 * 60),
                                   txt("bellville-vets"));
-    NEAR(vet.v[0], 65.64, 0.01);            // documented: 65.6% against 68.9%
+    NEAR(vet.v[0], 0.6564, 1e-4);            // documented: 65.6% against 68.9%
 }
 
 // ---------------------------------------------------------------------------

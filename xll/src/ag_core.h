@@ -6,7 +6,7 @@
 //
 // The arithmetic mirrors the published calculator (see docs/03-algorithm.md in
 // the parent repo): bilinear lookup in (age, distance) over the published rows,
-// then percent = 100 * open_standard / (time * factor).
+// then percent = open_standard / (time * factor), as a fraction (0.6849).
 #pragma once
 
 #include <cstdint>
@@ -137,7 +137,7 @@ struct Graded {
     double standard = 0.0;      // open standard, seconds
     double age_standard = 0.0;  // time that scores 100%
     double graded = 0.0;        // time * factor
-    double percent = 0.0;
+    double percent = 0.0;   // a fraction, not 0-100: Excel's % format shows it
 };
 
 // Throws Error{Num} when the distance is outside the published range.
@@ -147,6 +147,7 @@ Graded grade(const Table& t, int sex, double age, double distance_km,
              double time_seconds);
 
 // The time that would score `percent` (the calculator's "Result" button).
+// `percent` is a fraction: 0.75 for 75 %.
 double time_for_percent(const Table& t, int sex, double age, double distance_km,
                         double percent);
 

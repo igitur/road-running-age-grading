@@ -50,7 +50,7 @@ grade(sex, age, distance_km, time_s):
 
     S_age  = S_open / f
     graded = time_s * f
-    percent= 100 * S_open / (time_s * f)
+    percent= S_open / (time_s * f)        # a fraction: 0.6849
     return {factor: f, standard_s: S_open, age_standard_s: S_age,
             age_graded_s: graded, percent: percent}
 ```
@@ -151,19 +151,21 @@ Recomputing from the key distances gives a different (and unauthorised) answer.
 ## The percentage
 
 ```
-percent = 100 * S_open / (time * f)
+percent = S_open / (time * f)
 ```
 
-equivalently `100 * S_age / time`, exactly the same value. Two implementation
-notes:
+equivalently `S_age / time`, exactly the same value. **It is a fraction, not a
+number out of 100**: 68.49 % is `0.6849`. Multiply by 100 only to display it, and
+format a spreadsheet cell `00.00%` so Excel does that multiplication itself. Three
+implementation notes:
 
-1. **`percent` can exceed 100.** Do not clamp it. 106.30% is a legitimate
-   answer (see [01-concepts.md](01-concepts.md#percentages-above-100)).
+1. **`percent` can exceed 1.0.** Do not clamp it. `1.0630` — 106.30% — is a
+   legitimate answer (see [01-concepts.md](01-concepts.md#percentages-above-100)).
 2. **The published UI rounds before dividing.** Its display code is:
 
    ```
    S_age_shown = round to 2dp (if < 60 s), 1dp (if < 1 h), 0dp (otherwise)
-   percent     = 100 * S_age_shown / time      → shown to 2dp
+   percent     = S_age_shown / time            → shown to 2dp as a percentage
    ```
 
    That introduces up to ±0.005% of artefact from display rounding alone. Use
@@ -215,7 +217,7 @@ def grade(t, sex, age, dist_km, time_s):
     f = ((1-pd) * ((1-pa)*e0.factors[ia] + pa*e0.factors[ib])
        +      pd * ((1-pa)*e1.factors[ia] + pa*e1.factors[ib]))
     s_open = (1-pd) * e0.standard_s + pd * e1.standard_s
-    return f, s_open, s_open / f, time_s * f, 100 * s_open / (time_s * f)
+    return f, s_open, s_open / f, time_s * f, s_open / (time_s * f)
 ```
 
 The only subtleties are the boundary rules above and the event-name lookup,

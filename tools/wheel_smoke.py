@@ -47,21 +47,21 @@ def main(argv: list[str]) -> int:
     g = table(2025, "M").grade("M", 40, 40 * 60, dist_km=10)
     check("M 40 10k 40:00 factor", g.factor, 0.9636, 1e-6)
     check("M 40 10k 40:00 age-graded", format_time(g.age_graded_s), "38:32.6")
-    check("M 40 10k 40:00 percent", round(g.percent, 4), 68.4932, 1e-4)
+    check("M 40 10k 40:00 percent (fraction)", round(g.percent, 4), 0.6849, 1e-6)
 
     g2 = table(2025, "F").grade("F", 65, 125 * 60, dist_km=21.0975)
     check("F 65 half 2:05:00 factor", g2.factor, 0.72, 1e-6)
-    check("F 65 half 2:05:00 percent", round(g2.percent, 4), 69.8519, 1e-4)
+    check("F 65 half 2:05:00 percent (fraction)", round(g2.percent, 4), 0.6985, 1e-6)
 
     check("time_for_pct round trip", format_time(
-        table(2025, "M").time_for_percent("M", 40, 68.49, dist_km=10)), "40:00.1")
+        table(2025, "M").time_for_percent("M", 40, 0.6849, dist_km=10)), "40:00.1")
 
     # An older edition must answer differently, or the edition argument is a lie.
     # The 2020 and 2025 factor curves are close, so compare the open standard too.
     old = table(2020, "M").grade("M", 40, 40 * 60, dist_km=12)
     check("2020 open standard at 12 km", table(2020, "M").event("12km").standard_s, 1923.0, 1e-6)
     check("2025 open standard at 12 km", table(2025, "M").event("12km").standard_s, 1915.0, 1e-6)
-    check("2020 percent at 12 km", round(old.percent, 2), 83.02, 0.01)
+    check("2020 percent at 12 km", round(old.percent, 4), 0.8302, 1e-6)
 
     # Refusals stay refusals.
     try:
@@ -84,7 +84,8 @@ def main(argv: list[str]) -> int:
         print(f"FAIL console script exited {out.returncode}: {out.stderr.strip()[:200]}")
     else:
         payload = json.loads(out.stdout)
-        check("console script percent", round(payload["percent"], 2), 68.49, 1e-9)
+        check("console script percent (fraction)", round(payload["percent"], 4), 0.6849, 1e-9)
+        check("console script display", round(payload["percent_display"], 2), 68.49, 1e-9)
 
     if failures:
         print(f"\n{len(failures)} failure(s): {', '.join(failures)}")

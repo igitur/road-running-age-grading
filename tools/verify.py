@@ -143,8 +143,8 @@ def check_oracle(tables, tol_pct: float = 0.005, tol_fac: float = 1e-9) -> int:
             bad += 1
             if bad <= 8:
                 print(f"  FACTOR {req}: ours {ui_fac} vs ui {want_fac}")
-        want_pct = float(got["aplp"])
-        mine_pct = ui_percent(time_s, g.age_standard_s)  # same display rounding
+        want_pct = float(got["aplp"])                     # the page: percent units
+        mine_pct = 100.0 * ui_percent(time_s, g.age_standard_s)  # same display rounding
         d = abs(mine_pct - want_pct)
         worst = max(worst, d)
         if d > tol_pct:

@@ -64,7 +64,7 @@ FILL_IN = PatternFill("solid", fgColor=INPUT)
 FILL_CHECK = PatternFill("solid", fgColor=CHECK)
 
 TIME_FMT = "[h]:mm:ss"
-PCT_FMT = "0.00"
+PCT_FMT = "00.00%"      # the value is a fraction: 0.6849 shows as 68.49%
 FAC_FMT = "0.0000"
 
 CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -348,6 +348,8 @@ def sheet_start(wb: Workbook) -> None:
     r += 1
     header_row(ws, r, ["Sheet", "What it demonstrates"], start_col=2)
     index = [
+        ("Functions", "All twelve functions: arguments, what each returns, the shape it returns it "
+                      "in, and which sheet shows it working. Read this second."),
         ("1 Squad", "Grading a whole squad: one formula per column, and RRAG.BLOCK spilling five "
                     "columns at once. Club summary formulas on top of the results."),
         ("2 One call", "Every function with scalar arguments: RRAG.GRADE, RRAG.GRADEDTIME, RRAG.FACTOR, "
@@ -361,9 +363,7 @@ def sheet_start(wb: Workbook) -> None:
                             "with OpenStd optional, and a sidecar CSV."),
         ("6 Times & formats", "Seconds, Excel time values and [h]:mm:ss; the inverse function; "
                               "round-tripping a percentage."),
-        ("7 Functions", "All twelve functions: arguments, what each returns, the shape it "
-                        "returns it in, and which sheet shows it working."),
-        ("8 Reference", "Distances the tables cover, argument rules, and what every error means."),
+        ("7 Reference", "Distances the tables cover, argument rules, and what every error means."),
     ]
     for name, what in index:
         r += 1
@@ -458,7 +458,7 @@ def sheet_squad(wb: Workbook) -> None:
             ws[f"{col}{row}"].number_format = TIME_FMT
         ws[f"Q{row}"].number_format = PCT_FMT
         c = ws[f"H{row}"]
-        c.value = f'=IF(ABS(F{row}-G{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(F{row}-G{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
 
     # do the two entry styles agree with each other?
@@ -466,7 +466,7 @@ def sheet_squad(wb: Workbook) -> None:
     ws.cell(row=row, column=1,
             value="RRAG.BLOCK percent agrees with RRAG.GRADE column").font = F_H2
     c = ws[f"H{row}"]
-    c.value = (f'=IF(SUMPRODUCT(--(ABS(Q{first}:Q{last}-F{first}:F{last})>0.01))=0,'
+    c.value = (f'=IF(SUMPRODUCT(--(ABS(Q{first}:Q{last}-F{first}:F{last})>0.0001))=0,'
                f'"OK","MISMATCH")')
     c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
 
@@ -564,12 +564,12 @@ def sheet_one_call(wb: Workbook) -> None:
         ("RRAG.STANDARD", 'F, 40, half marathon', '=RRAG.STANDARD("F",40,21.0975)',
          tbl("F").event("Half.Mar").standard_s / 86400.0, TIME_FMT,
          'Distance can be given in km or as a name; 21.0975 and "half" are the same thing.'),
-        ("RRAG.TIMEFORPCT", 'M, 40, 10 km, 68.49%', '=RRAG.TIMEFORPCT("M",40,10,68.49)',
-         tbl("M").time_for_percent("M", 40, 68.49, dist_km=10.0) / 86400.0, TIME_FMT,
+        ("RRAG.TIMEFORPCT", 'M, 40, 10 km, 0.6849', '=RRAG.TIMEFORPCT("M",40,10,0.6849)',
+         tbl("M").time_for_percent("M", 40, 0.6849, dist_km=10.0) / 86400.0, TIME_FMT,
          "The inverse: the time that would score that percentage. This is the calculator's "
          "Result button."),
-        ("RRAG.TIMEFORPCT", 'F, 52, half, 80%', '=RRAG.TIMEFORPCT("F",52,21.0975,80)',
-         tbl("F").time_for_percent("F", 52, 80, dist_km=21.0975) / 86400.0, TIME_FMT,
+        ("RRAG.TIMEFORPCT", 'F, 52, half, 0.80', '=RRAG.TIMEFORPCT("F",52,21.0975,0.8)',
+         tbl("F").time_for_percent("F", 52, 0.8, dist_km=21.0975) / 86400.0, TIME_FMT,
          "How you set a club badge: pick the percentage, get the target time per age."),
     ]
     for i, (fn, args, formula, exp, fmt, why) in enumerate(rows):
@@ -748,7 +748,7 @@ def sheet_editions(wb: Workbook) -> None:
     live(ws, f"B{r + 2}", '=RRAG.GRADE("F",45,21.0975,"1:45:00",2020)', PCT_FMT)
     expected(ws, f"C{r + 2}", round(grade("F", 45, 21.0975, 6300, 2020).percent, 4), PCT_FMT)
     c = ws[f"D{r + 2}"]
-    c.value = f'=IF(ABS(B{r + 2}-C{r + 2})<0.01,"OK","MISMATCH")'
+    c.value = f'=IF(ABS(B{r + 2}-C{r + 2})<0.0001,"OK","MISMATCH")'
     c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
     ws[f"A{r + 2}"].value = '2020 (a number)'
     ws[f"A{r + 2}"].font, ws[f"A{r + 2}"].border = F_MONO, BOX
@@ -758,7 +758,7 @@ def sheet_editions(wb: Workbook) -> None:
     live(ws, f"B{r + 3}", '=RRAG.GRADE("F",45,21.0975,"1:45:00","latest")', PCT_FMT)
     expected(ws, f"C{r + 3}", round(base, 4), PCT_FMT)
     c = ws[f"D{r + 3}"]
-    c.value = f'=IF(ABS(B{r + 3}-C{r + 3})<0.01,"OK","MISMATCH")'
+    c.value = f'=IF(ABS(B{r + 3}-C{r + 3})<0.0001,"OK","MISMATCH")'
     c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
     ws[f"A{r + 3}"].value = '"latest"'
     ws[f"A{r + 3}"].font, ws[f"A{r + 3}"].border = F_MONO, BOX
@@ -908,7 +908,7 @@ def sheet_vectors(wb: Workbook) -> None:
         live(ws, f"B{row}", f'=RRAG.GRADE("M",A{row},10,"40:00")', PCT_FMT)
         expected(ws, f"C{row}", round(grade("M", age, 10.0, 2400).percent, 4), PCT_FMT)
         c = ws[f"D{row}"]
-        c.value = f'=IF(ABS(B{row}-C{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(B{row}-C{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         ws[f"E{row}"].value = why
         ws[f"E{row}"].font, ws[f"E{row}"].alignment = F_BODY, LEFT_WRAP
@@ -938,7 +938,7 @@ def sheet_vectors(wb: Workbook) -> None:
         live(ws, f"C{row}", f'=RRAG.GRADE("M",40,10,B{row})', PCT_FMT)
         expected(ws, f"D{row}", round(grade("M", 40, 10.0, 2400).percent, 4), PCT_FMT)
         c = ws[f"E{row}"]
-        c.value = f'=IF(ABS(C{row}-D{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(C{row}-D{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         ws[f"F{row}"].value = why
         ws[f"F{row}"].font, ws[f"F{row}"].alignment = F_BODY, LEFT_WRAP
@@ -1011,7 +1011,7 @@ def sheet_custom(wb: Workbook) -> None:
         live(ws, f"E{row}", f"=RRAG.GRADE(A{row},C{row},B{row},D{row},{rng})", PCT_FMT)
         expected(ws, f"F{row}", round(custom_grade(sex, label_km(event), age, secs(t)), 4), PCT_FMT)
         c = ws[f"G{row}"]
-        c.value = f'=IF(ABS(E{row}-F{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(E{row}-F{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         built_in = grade(sex, age, label_km(event), secs(t)).percent
         expected(ws, f"H{row}", round(built_in, 4), PCT_FMT)
@@ -1065,7 +1065,7 @@ def sheet_custom(wb: Workbook) -> None:
         live(ws, f"E{row}", f"=RRAG.GRADE(A{row},C{row},B{row},D{row},{long_rng})", PCT_FMT)
         expected(ws, f"F{row}", round(custom_grade(sex, label_km(event), age, secs(t)), 4), PCT_FMT)
         c = ws[f"G{row}"]
-        c.value = f'=IF(ABS(E{row}-F{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(E{row}-F{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         c = ws[f"H{row}"]
         c.value = (f'=IF(ABS(E{row}-RRAG.GRADE(A{row},C{row},B{row},D{row},{rng}))<0.01,'
@@ -1147,7 +1147,7 @@ def sheet_times(wb: Workbook) -> None:
         live(ws, f"B{row}", f'=RRAG.GRADE("M",40,10,B{src},"40:00")', PCT_FMT)
         expected(ws, f"C{row}", round(grade("M", 40, 10.0, 2380).percent, 4), PCT_FMT)
         c = ws[f"D{row}"]
-        c.value = f'=IF(ABS(B{row}-C{row})<0.01,"OK","MISMATCH")'
+        c.value = f'=IF(ABS(B{row}-C{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         ws[f"E{row}"].value = why
         ws[f"E{row}"].font, ws[f"E{row}"].alignment = F_BODY, LEFT_WRAP
@@ -1287,7 +1287,8 @@ ARGUMENTS = [
     ("time", "An Excel time value, text like \"40:00\", or a number of seconds. Numbers below 1 "
              "are read as day fractions (Excel time), 1 or more as seconds. Blank rows stay "
              "blank rather than erroring."),
-    ("percent", "The age grade you want, in percent units: 75, not 0.75."),
+    ("percent", "The age grade you want, as a fraction: 0.75 for 75 %, not 75. A cell "
+                "formatted 00.00% shows it as 75.00%."),
     ("table", "Optional. Omit for the newest edition, or pass 2025, 2020, 2015, 2010, "
               "'latest', a <name>.csv in the add-in's folder, or a range holding a custom "
               "table."),
@@ -1309,7 +1310,7 @@ def check_function_docs() -> None:
 
 
 def sheet_function_reference(wb: Workbook) -> None:
-    ws = wb.create_sheet("7 Functions")
+    ws = wb.create_sheet("Functions")
     widths(ws, {"A": 20, "B": 30, "C": 46, "D": 46, "E": 24, "F": 24})
     r = title(ws, "Every function, and what it gives you back",
               "Twelve worksheet functions in the Road Running category. Type =RRAG. and "
@@ -1355,7 +1356,8 @@ def sheet_function_reference(wb: Workbook) -> None:
     r = r + 2 + len(ARGUMENTS) + 1
     subhead(ws, r, "Conventions that hold everywhere")
     for line in [
-        "Percentages are in percent units: 68.49, not 0.6849. Times are Excel time values, so "
+        "Percentages are fractions: 0.6849, not 68.49, so Excel's 00.00% format shows them as "
+        "68.49%. Times are Excel time values, so "
         "format them [h]:mm:ss - without the brackets hours wrap at 24 and a marathon reads "
         "as 02:11:00.",
         "Errors are per row. One unreadable row gives #NUM! in that row only; the rest of the "
@@ -1383,7 +1385,7 @@ def sheet_function_reference(wb: Workbook) -> None:
 # sheet 8 — reference
 # ---------------------------------------------------------------------------
 def sheet_reference(wb: Workbook) -> None:
-    ws = wb.create_sheet("8 Reference")
+    ws = wb.create_sheet("7 Reference")
     widths(ws, {"A": 14, "B": 10, "C": 10, "D": 52})
     r = title(ws, "Reference", "The distances the tables cover, and the rules every call follows.")
 
@@ -1508,9 +1510,9 @@ def cell_refs(ref: str) -> set[str]:
 # The sheets the workbook must contain, in order. A builder function that is
 # shadowed (two defs with one name) or never called silently drops a sheet, and
 # the workbook still builds - so compare the manifest.
-EXPECTED_SHEETS = ["Start here", "1 Squad", "2 One call", "3 Editions",
+EXPECTED_SHEETS = ["Start here", "Functions", "1 Squad", "2 One call", "3 Editions",
                    "4 Vector rules", "5 Custom tables", "6 Times & formats",
-                   "7 Functions", "8 Reference"]
+                   "7 Reference"]
 
 
 def validate(wb) -> list[str]:
@@ -1728,13 +1730,13 @@ def postprocess(path: Path) -> None:
 def build(path: Path) -> None:
     wb = Workbook()
     sheet_start(wb)
+    sheet_function_reference(wb)   # read second, before any sheet that uses a function
     sheet_squad(wb)
     sheet_one_call(wb)
     sheet_editions(wb)
     sheet_vectors(wb)
     sheet_custom(wb)
     sheet_times(wb)
-    sheet_function_reference(wb)
     sheet_reference(wb)
     guard_verdicts(wb)
 

@@ -38,12 +38,12 @@ own build.
 
 | Function | Returns |
 | --- | --- |
-| `RRAG.GRADE(sex, age, distance, time, [table])` | age grade **percent** |
+| `RRAG.GRADE(sex, age, distance, time, [table])` | age grade **as a fraction** (0.6849; format the cell `00.00%`) |
 | `RRAG.GRADEDTIME(sex, age, distance, time, [table])` | age-graded **time** (Excel time value) |
 | `RRAG.FACTOR(sex, age, distance, [table])` | the age **factor** (0 < f ≤ 1) |
 | `RRAG.STANDARD(sex, age, distance, [table])` | the **open standard** for the distance |
-| `RRAG.TIMEFORPCT(sex, age, distance, percent, [table])` | the time that scores `percent` |
-| `RRAG.BLOCK(sex, age, distance, time, [table])` | **five columns**: factor, open standard, age standard, graded time, percent |
+| `RRAG.TIMEFORPCT(sex, age, distance, percent, [table])` | the time that scores `percent` (a fraction) |
+| `RRAG.BLOCK(sex, age, distance, time, [table])` | **five columns**: factor, open standard, age standard, graded time, percent (a fraction) |
 | `RRAG.TABLES()` | edition years available |
 | `RRAG.TABLEINFO([table])` | year, distances, ages, sexes in a table |
 | `RRAG.CACHEINFO()` | cache counters |

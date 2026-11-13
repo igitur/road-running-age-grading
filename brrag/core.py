@@ -71,7 +71,7 @@ class Lookup:
 @dataclass(frozen=True)
 class Grade:
     age_graded_s: float
-    percent: float
+    percent: float          # a fraction: 0.6849 is 68.49 %, so Excel's % format works
     factor: float
     standard_s: float
     age_standard_s: float
@@ -223,7 +223,7 @@ class Tables:
         astd = lk.age_standard_s
         return Grade(
             age_graded_s=time_s * lk.factor,
-            percent=100.0 * astd / time_s,
+            percent=astd / time_s,
             factor=lk.factor,
             standard_s=lk.standard_s,
             age_standard_s=astd,
@@ -235,9 +235,9 @@ class Tables:
                          event: str | None = None,
                          policy: str = "strict") -> float:
         """Inverse: the time that would score `percent` (the calculator's
-        'Result' button)."""
+        'Result' button). `percent` is a fraction: 0.75 for 75 %."""
         lk = self.lookup(sex, age, dist_km=dist_km, event=event, policy=policy)
-        return lk.age_standard_s / (percent / 100.0)
+        return lk.age_standard_s / percent
 
 
 def load_tables(path: str | Path = DEFAULT_DATA) -> dict[str, Tables]:

@@ -56,14 +56,16 @@ g.factor              # 0.96360...
 g.standard_s          # 1584.0        open standard
 g.age_standard_s      # 1643.8...     100% time for this age
 g.age_graded_s        # 2313.6...     time x factor
-g.percent             # 68.49...      (unrounded)
+g.percent             # 0.6849...     a fraction; x 100 for 68.49 %
 
-ui_percent(2400, g.age_standard_s)    # 68.49  — exactly what the page shows
+ui_percent(2400, g.age_standard_s)    # 0.6849 — exactly what the page shows
+                                      # (also a fraction: that is 68.49 %)
 ```
 
 `t.grade()` accepts either `event="10kmRoad"` (exact row) or `dist_km=10` (the
 two-axis lookup). `t.lookup()` returns just `(factor, standard)`.
-`t.time_for_percent()` is the calculator's *Result* button.
+`t.time_for_percent(..., percent)` is the calculator's *Result* button, and takes the
+same fraction: 0.75 means 75 %.
 
 Two keyword policies exist so that "faithful to the calculator" is a choice
 rather than an accident:
@@ -123,7 +125,7 @@ function grade(tab, age, dist, time_s)
     fac = (1-pd)*f0 + pd*f1
     sopen = (1-pd)*tab.standard[i0] + pd*tab.standard[i1]
     (; factor=fac, age_standard=sopen/fac, graded=time_s*fac,
-       percent=100*sopen/(time_s*fac))
+       percent=sopen/(time_s*fac))            # a fraction: 0.6849
 end
 ```
 

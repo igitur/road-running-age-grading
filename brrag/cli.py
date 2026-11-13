@@ -137,7 +137,8 @@ def main(argv: list[str] | None = None) -> int:
         "factor": round(g.factor, 4),
         "age_graded_s": g.age_graded_s,
         "age_graded": format_time(g.age_graded_s, 1),
-        "percent": round(percent, 2),
+        "percent": round(percent, 4),
+        "percent_display": round(percent * 100.0, 2),
         "open_standard_s": g.standard_s,
         "open_standard": format_time(g.standard_s, 0),
         "age_standard_s": g.age_standard_s,
@@ -153,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"age standard   {out['age_standard']:>10}  (scores 100.0%)")
     print(f"factor         {out['factor']:>10.4f}")
     print(f"age-graded     {out['age_graded']:>10}")
-    print(f"age grade      {out['percent']:>10.2f}%")
+    print(f"age grade      {out['percent_display']:>9.2f}%")
     return 0
 
 

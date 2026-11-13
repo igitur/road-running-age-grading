@@ -16,7 +16,7 @@ columns out — so one formula per column grades the whole squad.
 | `age` | `40` | `C2:C181` |
 | `distance` | `10` or `"10k"` | `D2:D181` |
 | `time` | `0:40:00` / `"40:00"` / `2400` | `E2:E181` |
-| `percent` | `75` | `F2:F181` |
+| `percent` | `0.75` (a fraction) | `F2:F181` |
 | `table` | `"2025"` / `2025` / `"latest"` | a range (custom table) |
 
 A scalar broadcasts. Every *vector* must be the same length; otherwise the call
@@ -105,13 +105,15 @@ reason lives in `RRAG.LASTERROR()`.
 
 ## `RRAG.GRADE(sex, age, distance, time, [table])`
 
-The age grade, as a percentage. 100 means "as good as the world-standard mark
-for that exact age and sex"; 68.49 means the athlete took 100/68.49 = 1.46× as
+The age grade **as a fraction**: `0.6849` is 68.49 %. Format the cell `00.00%` and
+Excel multiplies by 100 for you; the raw value is what `1.0` compares against.
+`1.0` means "as good as the world-standard mark for that exact age and sex";
+`0.6849` means the athlete took 1/0.6849 = 1.46× as
 long as that standard.
 
 ```
-=RRAG.GRADE("M", 40, 10, "40:00")                 → 68.49
-=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)   → 180 percentages
+=RRAG.GRADE("M", 40, 10, "40:00")                 → 0.6849  (68.49% formatted 00.00%)
+=RRAG.GRADE(B2:B181, C2:C181, D2:D181, E2:E181)   → 180 fractions
 =RRAG.GRADE(B2, C2, D2, E2, "2020")               → graded on the 2020 tables
 ```
 
@@ -145,10 +147,11 @@ argument is accepted only so the signature matches its siblings.
 
 ## `RRAG.TIMEFORPCT(sex, age, distance, percent, [table])`
 
-The calculator's *Result* button: what time scores the given percentage?
+The calculator's *Result* button: what time scores the given percentage? The
+percentage is a **fraction** — `0.75` for 75 %, matching what `RRAG.GRADE` returns.
 
 ```
-=RRAG.TIMEFORPCT("M", 40, 10, 68.49)      → 0:40:00
+=RRAG.TIMEFORPCT("M", 40, 10, 0.6849)      → 0:40:00
 =RRAG.TIMEFORPCT("F", 52, "21.1", 80)     → the half marathon that scores 80%
 ```
 

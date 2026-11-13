@@ -356,7 +356,7 @@ Graded grade(const Table& t, int sex, double age, double distance_km,
     g.standard = lk.standard;
     g.age_standard = lk.standard / lk.factor;
     g.graded = time_seconds * lk.factor;
-    g.percent = 100.0 * g.age_standard / time_seconds;
+    g.percent = g.age_standard / time_seconds;   // a fraction: 0.6849
     return g;
 }
 
@@ -364,7 +364,7 @@ double time_for_percent(const Table& t, int sex, double age, double distance_km,
                         double percent) {
     const Lookup lk = lookup(t, sex, age, distance_km);
     if (!(percent > 0)) throw Error{Err::Num, "percent must be positive"};
-    return (lk.standard / lk.factor) / (percent / 100.0);
+    return (lk.standard / lk.factor) / percent;
 }
 
 // ---------------------------------------------------------------------------
