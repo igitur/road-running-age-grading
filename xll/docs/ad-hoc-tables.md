@@ -21,7 +21,7 @@ you are using.
 
 One row per (sex, distance). Ages run across the header.
 
-| Sex | Event | OpenStd | 5 | 6 | … | 100 |
+| Sex | Distance | OpenStd | 5 | 6 | … | 100 |
 | --- | --- | --- | --- | --- | --- | --- |
 | M | 10 k | 26:24 | 0.5073 | 0.5678 | … | 0.2121 |
 | F | 10 k | 28:46 | 0.6850 | 0.7183 | … | 0.1477 |
@@ -35,7 +35,7 @@ keeps the sexes on separate sheets) and paste the open standards alongside.
 
 Minimal version — only the ages you care about:
 
-| Sex | Event | OpenStd | 30 | 40 | 50 |
+| Sex | Distance | OpenStd | 30 | 40 | 50 |
 | --- | --- | --- | --- | --- | --- |
 | M | 10 k | 26:24 | 1 | 0.9 | 0.8 |
 | F | 10 k | 28:46 | 1 | 0.85 | 0.75 |
@@ -48,7 +48,7 @@ and `age 12` gets the age-30 factor (1.0).
 One row per (sex, distance, age). Reads like a database table and is what a
 `pandas.melt` or an unpivot produces.
 
-| Sex | Event | Age | Factor | OpenStd |
+| Sex | Distance | Age | Factor | OpenStd |
 | --- | --- | --- | --- | --- |
 | M | 10 k | 30 | 1 | 26:24 |
 | M | 10 k | 40 | 0.9 | 26:24 |
@@ -62,7 +62,7 @@ Detected by the presence of both an `Age` and a `Factor` column.
 
 | Rule | Why |
 | --- | --- |
-| Header names are case- and space-insensitive: `Sex`/`Gender`, `Event`/`Distance`, `OpenStd`/`Standard`/`Std`/`Open` | nobody should have to guess |
+| Header names are case- and space-insensitive: `Sex`/`Gender`, `Distance`/`Event`/`Km`/`Dist`, `OpenStd`/`Standard`/`Std`/`Open` | nobody should have to guess |
 | `OpenStd` is **optional**. Omitted → the built-in 2025 standard for that exact distance is used | the common case is "same distance, my factors" |
 | `OpenStd` accepts a time value, `"26:24"` or seconds | same rules as every other time argument |
 | A blank `Sex` cell inherits the row above | lets you write `M` once per block |
@@ -153,7 +153,7 @@ factors everywhere except 10 km for over-45s, where it multiplies them by 1.05
 `tables\bellville-vets.csv`:
 
 ```csv
-Sex,Event,OpenStd,45,50,55,60,65,70
+Sex,Distance,OpenStd,45,50,55,60,65,70
 M,10 k,26:24,0.9724,0.933,0.8937,0.8543,0.8149,0.7755
 F,10 k,28:46,0.9742,0.9263,0.8741,0.8219,0.7698,0.7176
 ```

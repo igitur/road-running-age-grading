@@ -127,7 +127,7 @@ CUSTOM_ROWS = [
 def custom_factors(sex: str, km: float) -> list[float]:
     """The published factors behind a row of the custom table.
 
-    Looked up by distance, not by name: the workbook writes the table's Event
+    Looked up by distance, not by name: the workbook writes the table's Distance
     cells in the add-in's grammar ("10 k"), while the Python data API knows the
     published row labels ("10kmRoad"). Distance is the thing they share.
     """
@@ -869,7 +869,7 @@ def sheet_custom(wb: Workbook) -> None:
 
     # ---- matrix block ----
     subhead(ws, 4, "Layout A — matrix: one row per (sex, distance), ages across the header")
-    header_row(ws, 5, ["Sex", "Event", "OpenStd"] + [str(a) for a in CUSTOM_AGES])
+    header_row(ws, 5, ["Sex", "Distance", "OpenStd"] + [str(a) for a in CUSTOM_AGES])
     m0 = 6
     for i, (sex, event, std) in enumerate(CUSTOM_ROWS):
         row = m0 + i
@@ -897,7 +897,7 @@ def sheet_custom(wb: Workbook) -> None:
     # ---- queries against it ----
     r = m1 + 3
     subhead(ws, r, "Grading against that range")
-    header_row(ws, r + 1, ["Sex", "Event", "Age", "Time", "live %", "expected %", "check",
+    header_row(ws, r + 1, ["Sex", "Distance", "Age", "Time", "live %", "expected %", "check",
                            "built-in 2025 %", "difference (pp)", "note"])
     q0 = r + 2
     queries = [
@@ -936,7 +936,7 @@ def sheet_custom(wb: Workbook) -> None:
     # ---- long block ----
     r = q0 + len(queries) + 2
     subhead(ws, r, "Layout B — long: one row per (sex, distance, age), for machine-made tables")
-    header_row(ws, r + 1, ["Sex", "Event", "Age", "Factor", "OpenStd"])
+    header_row(ws, r + 1, ["Sex", "Distance", "Age", "Factor", "OpenStd"])
     l0 = r + 2
     row = l0
     for sex, event, std in CUSTOM_ROWS:
@@ -958,7 +958,7 @@ def sheet_custom(wb: Workbook) -> None:
     long_rng = f"$A${l0 - 1}:$E${l1}"
 
     r = l1 + 2
-    header_row(ws, r, ["Sex", "Event", "Age", "Time", "live % (long)", "expected %", "check",
+    header_row(ws, r, ["Sex", "Distance", "Age", "Time", "live % (long)", "expected %", "check",
                        "same as matrix?", "note"])
     row = r + 1
     for sex, event, age, t in (("M", "10 k", 50, "40:00"), ("F", "marathon", 58, "3:30:00")):
