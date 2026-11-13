@@ -17,6 +17,13 @@ One formula, 180 age grades, spilled down the column.
 
 ---
 
+The released `.xll` travels with the sample workbook in
+`brrag-<version>-excel.zip` on the GitHub release, built by
+`release.yml` from the same sources and the same pinned framework commit. The
+link uses `-Wl,--no-insert-timestamp`, so a rebuild of a tagged commit yields a
+byte-identical binary and the release's `SHA256SUMS` can be checked against your
+own build.
+
 ## What it is not
 
 - Not a VBA macro: it is a compiled add-in, ~10⁴× faster per call than a UDF

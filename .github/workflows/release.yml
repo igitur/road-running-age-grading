@@ -68,14 +68,59 @@ jobs:
           cd /tmp
           /tmp/wheeltest/bin/python "$GITHUB_WORKSPACE/tools/wheel_smoke.py" "${{ steps.version.outputs.version }}"
 
-      - name: Add the sample workbook to the assets
+      - name: Install the mingw cross-compiler
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++-mingw-w64-x86-64
+
+      - name: Check out the xll framework this build is pinned to
+        run: |
+          set -euo pipefail
+          # Pinned to the commit xll/patches/xll-mingw-portability.patch applies to:
+          # a moving upstream would silently change the .xll we ship.
+          XLL_DIR="$HOME/code/xll"
+          mkdir -p "$XLL_DIR"
+          git -C "$XLL_DIR" init -q
+          git -C "$XLL_DIR" remote add origin https://github.com/xlladdins/xll
+          git -C "$XLL_DIR" fetch -q --depth 1 origin 481178bced1022f0b36b582388b79a6eabe1a11f
+          git -C "$XLL_DIR" checkout -q FETCH_HEAD
+          git -C "$XLL_DIR" rev-parse --short HEAD
+          ./xll/tools/apply-xll-patches.sh
+
+      - name: Build the add-in and audit its exports
+        run: |
+          set -euo pipefail
+          make -C xll shim
+          make -C xll xll verify
+          # The link is timestamp-free, so this hash is reproducible: the asset we
+          # publish can be rebuilt and compared byte for byte.
+          sha256sum xll/road_running_age_grading.xll
+          x86_64-w64-mingw32-objdump -f xll/road_running_age_grading.xll | head -3
+          strings xll/road_running_age_grading.xll | grep -c '^RRAG\.' | xargs -I{} test {} -eq 12
+
+      - name: Package the Excel bundle
         run: |
           set -euo pipefail
           python -m pip install --quiet "openpyxl>=3.1"
           # --check rebuilds it and fails if the committed copy is stale, so the
           # asset is known to match this commit rather than merely to exist.
           python xll/examples/build_sample_workbook.py --check
-          cp xll/examples/age-grading-sample.xlsx dist/
+          version="${{ steps.version.outputs.version }}"
+          python - "$version" <<'PY'
+          import sys, zipfile
+          version = sys.argv[1]
+          target = f"dist/brrag-{version}-excel.zip"
+          with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              z.write("xll/road_running_age_grading.xll", "road_running_age_grading.xll")
+              z.write("xll/examples/age-grading-sample.xlsx", "age-grading-sample.xlsx")
+          with zipfile.ZipFile(target) as z:
+              names = z.namelist()
+              for i in z.infolist():
+                  print(f"  {i.filename:32} {i.file_size:>9,} -> {i.compress_size:>8,}")
+          assert names == ["road_running_age_grading.xll", "age-grading-sample.xlsx"], names
+          PY
+          ls -l dist/
 
       - name: Upload the distribution
         uses: actions/upload-artifact@v4
@@ -102,7 +147,7 @@ jobs:
           set -euo pipefail
           cd dist
           # Named explicitly: `sha256sum *` would include the file being written.
-          sha256sum *.whl *.tar.gz age-grading-sample.xlsx > SHA256SUMS
+          sha256sum *.whl *.tar.gz *.zip > SHA256SUMS
           cat SHA256SUMS
 
       - name: Create the release

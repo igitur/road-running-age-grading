@@ -51,7 +51,8 @@ xll: $(NAME).xll
 
 $(NAME).xll: $(OBJS) $(NAME).def
 	$(XLL) -shared -o $@ $(OBJS) $(NAME).def \
-	    -Wl,-s -lshlwapi -ladvapi32 -static-libgcc -static-libstdc++
+	    -Wl,-s -Wl,--no-insert-timestamp -lshlwapi -ladvapi32 \
+	    -static-libgcc -static-libstdc++
 
 road_running_age_grading.o: src/road_running_age_grading.cpp $(HDR)
 	$(XLL) $(XLLFLAGS) -c $< -o $@

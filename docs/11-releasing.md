@@ -19,11 +19,19 @@ gets a version like `0.1.dev21+ga620381a3`, which is not publishable.
 | --- | --- |
 | `brrag-<version>-py3-none-any.whl` | The library, the CLI, and the 22-event × 96-age tables for four editions, inside the package. 39 kB. |
 | `brrag-<version>.tar.gz` | The source distribution. |
-| `age-grading-sample.xlsx` | The sample workbook from `xll/examples/`, byte-identical to the one in the repository at that tag. Its twelve live formulas need the add-in; it is a demonstration, not a data file. |
+| `brrag-<version>-excel.zip` | The add-in and the workbook that demonstrates it, as one download: `road_running_age_grading.xll` (1 334 784 B, PE32+ x86-64, built in CI) and `age-grading-sample.xlsx` (the workbook from `xll/examples/`, rebuilt and compared with the committed copy at that tag). Unzip both into a folder, then add the `.xll` through **File → Options → Add-ins → Go → Browse**. |
 | `SHA256SUMS` | Digests of the three above. |
 
-The `.xll` is **not** in the release: it needs mingw-w64 and the patched `xll`
-framework, so it is built locally (see [the add-in README](../xll/README.md)).
+The `.xll` is cross-compiled on the runner with mingw-w64 against the `xll`
+framework **pinned to commit `481178b`**, with
+[xll-mingw-portability.patch](../xll/patches/xll-mingw-portability.patch) applied —
+the same recipe as `make -C xll xll` locally. The link carries
+`-Wl,--no-insert-timestamp`, so the build is reproducible: rebuilding the tagged
+commit produces the identical `.xll`, and `SHA256SUMS` in the release is a real
+claim about the binary rather than about one particular link.
+
+The workbook's twelve live formulas need the add-in loaded; without it they show
+`#NAME?`. It is a demonstration, not a data file.
 
 ## What the workflow does
 
@@ -34,7 +42,11 @@ framework, so it is built locally (see [the add-in README](../xll/README.md)).
    * **the wheel must carry its own tables** — `tools/wheel_smoke.py` installs
      the wheel into a fresh venv, runs from `/tmp` so the source-tree fallback
      cannot answer for it, and checks eight editions, three known grades, the
-     inverse, an out-of-range refusal and the console script.
+     inverse, an out-of-range refusal and the console script;
+   * **the add-in must build and export** — mingw-w64 cross-compiles it, `make
+     -C xll verify` fails if any symbol named in `road_running_age_grading.def`
+     is missing from the PE export table, and the build asserts the binary names
+     all twelve `RRAG.*` functions and imports system DLLs only.
 2. **github-release** — `sha256sum` over the assets, then `gh release create
    --generate-notes --verify-tag`. If a release for that tag already exists the
    job **fails** instead of overwriting it: bump the version rather than reuse a
