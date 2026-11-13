@@ -26,9 +26,14 @@ The `.xll` is cross-compiled on the runner with mingw-w64 against the `xll`
 framework **pinned to commit `481178b`**, with
 [xll-mingw-portability.patch](../xll/patches/xll-mingw-portability.patch) applied —
 the same recipe as `make -C xll xll` locally. The link carries
-`-Wl,--no-insert-timestamp`, so the build is reproducible: rebuilding the tagged
-commit produces the identical `.xll`, and `SHA256SUMS` in the release is a real
-claim about the binary rather than about one particular link.
+`-Wl,--no-insert-timestamp`, so there is no build timestamp baked in: the same
+sources built with the *same* mingw produce a byte-identical `.xll`, and the
+workflow prints `x86_64-w64-mingw32-g++ --version` for exactly that reason. A
+different mingw version still produces a different binary from identical sources
+(measured: gcc 13-win32 gives 1 334 784 B locally, the runner's build is
+1 335 808 B), so compare hashes only against a build made with the version the
+run reports. `SHA256SUMS` is a claim about the artefact being unmodified since
+the run, which is what matters for a download.
 
 The workbook's twelve live formulas need the add-in loaded; without it they show
 `#NAME?`. It is a demonstration, not a data file.

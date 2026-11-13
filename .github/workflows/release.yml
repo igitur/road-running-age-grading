@@ -93,8 +93,10 @@ jobs:
           set -euo pipefail
           make -C xll shim
           make -C xll xll verify
-          # The link is timestamp-free, so this hash is reproducible: the asset we
-          # publish can be rebuilt and compared byte for byte.
+          # The link is timestamp-free, so with THIS compiler the binary is
+          # reproducible byte for byte. Record the version, because a different
+          # mingw produces a different binary from identical sources.
+          x86_64-w64-mingw32-g++ --version | head -1
           sha256sum xll/road_running_age_grading.xll
           x86_64-w64-mingw32-objdump -f xll/road_running_age_grading.xll | head -3
           strings xll/road_running_age_grading.xll | grep -c '^RRAG\.' | xargs -I{} test {} -eq 12
