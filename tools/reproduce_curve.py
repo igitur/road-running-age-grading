@@ -21,7 +21,10 @@ import argparse
 import sys
 from pathlib import Path
 
-import openpyxl
+try:
+    import openpyxl
+except ImportError:  # tools deps are optional; see requirements-tools.txt
+    openpyxl = None
 
 ROOT = Path(__file__).resolve().parent.parent
 SEX_FILES = {"M": ROOT / "repo/2025 Files/maleRoad2025.xlsx",
@@ -78,6 +81,9 @@ def main() -> int:
     a = ap.parse_args()
 
     missing = [p.name for p in SEX_FILES.values() if not p.exists()]
+    if openpyxl is None:
+        print("SKIPPED: openpyxl not installed (pip install -r requirements-tools.txt)")
+        return 0
     if missing:
         print(f"SKIPPED: {', '.join(missing)} not present.")
         print("The working files live in the upstream tables repository:")
