@@ -220,20 +220,22 @@ def grade(t, sex, age, dist_km, time_s):
     return f, s_open, s_open / f, time_s * f, s_open / (time_s * f)
 ```
 
-The only subtleties are the boundary rules above and the event-name lookup,
-which is **case-insensitive but otherwise exact** (`10kmRoad`, not `10k`) in the
-VBA; the calculator's dropdown uses the same strings. `brrag` accepts the
-table name or a `--distance` alias (`10k`, `half`, `marathon`, `12.7` …).
+The only subtleties are the boundary rules above and the *identity* of a
+distance. The VBA and the calculator's dropdown work with event names
+(`10kmRoad`), matched case-insensitively but otherwise exactly. `brrag` and the
+add-in work with distances: one grammar (`10k`, `half marathon`, `6.2 miles`, a
+bare number of km), and the row labels are data, not input.
 
 ---
 
 ## Equivalence checks to write when you port this
 
-1. For every published cell: `lookup(sex, age, event=name).factor == cell`.
+1. For every published cell: `lookup(sex, age, ev.distance_km).factor == cell`.
    (4 224 assertions; see check A in [08-validation.md](08-validation.md).)
-2. `lookup(sex, age, dist_km=event.distance_km)` equals
-   `lookup(sex, age, event=event.name)` — the two entry points must agree.
-3. `S_age == S_open / f` and `percent == 100*S_age/time` to floating-point
-   tolerance.
+2. A distance that *is* a published distance and one interpolated from two
+   neighbours agree at the endpoints: `lookup(sex, age, d).factor` equals the
+   exact cell when `d == ev.distance_km` (that is what makes check A exact).
+3. `S_age == S_open / f` and `percent == S_age/time` (a fraction, not 0-100) to
+   floating-point tolerance.
 4. Invent a 40:00 10 km for a 40-year-old male and confirm **68.49%**. It is the
    canonical smoke test.

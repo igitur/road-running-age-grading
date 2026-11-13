@@ -49,7 +49,7 @@ factor             0.9636
 age-graded        38:32.6
 age grade          68.49%
 
-$ brrag 2:30:00 --age 75 --sex M --event Marathon --show-standard
+$ brrag 2:30:00 --age 75 --sex M --distance marathon --show-standard
 open standard     2:00:35
 age standard    2:55:51.3  (scores 100.0%)
 factor             0.6857
@@ -64,20 +64,15 @@ Times can be written `h:mm:ss`, `mm:ss` or as plain seconds. Distances can be
 written `10k`, `10 km`, `6.2 miles`, `half marathon`, `marathon`, or a bare
 number of kilometres.
 
-`--event` (and `event=` in Python) is a **different** argument: it takes an exact
-table row label — `10kmRoad`, `Half.Mar`, `7Mile` — and looks that row up
-directly. Those labels are the tables' internal names, not distance spellings, so
-each accepts what the other refuses:
+There is one grammar and no second way to name a distance: the tables' internal
+row labels (`10kmRoad`, `Half.Mar`) are **not** an input, and there is no
+`--event` flag to reach them with.
 
 ```
---distance 10kmRoad     refused: unknown unit 'kmroad'
---distance 10km         10.0 km
---event    10kmRoad     the published 10 km row
+--distance 10km        10.0 km
+--distance half marathon   21.0975 km
+--distance 10kmRoad    refused: unknown unit 'kmroad'
 ```
-
-One coincidence worth knowing: `--distance 7Mile` *is* accepted, because it
-normalises to "7 miles" = 11.265408 km, which happens to be the distance in that
-row. It is being parsed as a distance, not matched as a label.
 
 ### Machine-readable output
 
@@ -121,10 +116,9 @@ g.standard_s     # 1584.0   open standard for 10 km M
 g.age_standard_s # 1643.83  the time that scores 100 % at age 40
 ```
 
-`grade()` also accepts `event="10kmRoad"` instead of `dist_km` (the exact table
-row label, described above — not a distance spelling), a fractional age, and
-`policy="clamp"` to use the nearest published distance instead of raising on one
-outside the table.
+`grade()` also accepts a fractional age and `policy="clamp"` to use the nearest
+published distance instead of raising on one outside the table. The distance is
+always `dist_km`.
 
 ### The inverse: what time scores this grade?
 
@@ -191,8 +185,7 @@ want the nearest event deliberately.
 | `time` | performance: `h:mm:ss`, `mm:ss` or seconds |
 | `--age` | age in years at race day; fractional ages interpolate |
 | `--sex` | `M` or `F` |
-| `--distance` | `10k`, `6.2 miles`, `half marathon`, bare km … |
-| `--event` | exact table name, e.g. `10kmRoad` |
+| `--distance` | `10k`, `6.2 miles`, `half marathon`, bare km … (the only distance argument) |
 | `--year` | 2025 or 2020 (USATF MLDR), 2015 or 2010 (WMA) |
 | `--json` | machine-readable output |
 | `--list-events` | the distances this table covers |

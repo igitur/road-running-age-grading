@@ -51,7 +51,7 @@ def check_exact_grid(tables) -> int:
         t = tables[f"USATF MLDR 2025 {sex}"]
         for ev in t.events:
             for idx, age in enumerate(t.ages):
-                lk = t.lookup(sex, age, event=ev.name)
+                lk = t.lookup(sex, age, ev.distance_km)
                 n += 1
                 if abs(lk.factor - ev.factors[idx]) > 1e-12:
                     bad += 1
@@ -124,8 +124,12 @@ def check_oracle(tables, tol_pct: float = 0.005, tol_fac: float = 1e-9) -> int:
         time_s = parse_time(req["time"])
         blank = str(got.get("afac", "")).strip() == ""
         try:
-            g = t.grade(sex, req["age"], time_s, dist_km=req.get("distance_km"),
-                        event=req.get("event"))
+            # The oracle request names a label for the page's dropdown; ours
+            # takes the distance the label stands for.
+            dist = req.get("distance_km")
+            if dist is None and req.get("event"):
+                dist = t.event(req["event"]).distance_km
+            g = t.grade(sex, req["age"], time_s, dist)
         except OutOfRange:
             if blank:
                 continue  # both refuse to answer: parity
@@ -203,7 +207,7 @@ def check_standards(tables, tol_s: float = 0.51) -> int:
                 want = sheet.cell(row, col + offset).value
                 if not isinstance(age, int) or not isinstance(want, (int, float)):
                     continue
-                got = t.lookup(sex, age, event=ev.name).age_standard_s
+                got = t.lookup(sex, age, ev.distance_km).age_standard_s
                 checked += 1
                 if abs(round(got) - want) <= tol_s:
                     continue

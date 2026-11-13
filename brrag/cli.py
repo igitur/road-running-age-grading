@@ -4,7 +4,7 @@
 Examples
 --------
     brrag 40:00 --age 40 --sex M --distance 10k
-    brrag 2:30:00 --age 75 --sex M --event Marathon --json
+    brrag 2:30:00 --age 75 --sex M --distance marathon --json
     brrag 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
     brrag --list-events --sex F
 """
@@ -79,13 +79,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="M or F (default M)")
     ap.add_argument("--distance", "-d", help="distance: 10k, 10 km, 6.2 miles, half marathon, "
                          "marathon, or a bare number of km")
-    ap.add_argument("--event", "-e", help="exact table event name, e.g. 10kmRoad")
     ap.add_argument("--year", type=int, default=2025,
                     help="table year: 2025 or 2020 (USATF MLDR), 2015 or 2010 (WMA); "
                          "default 2025")
     ap.add_argument("--file", type=Path, default=DEFAULT_DATA, help="tables JSON")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
-    ap.add_argument("--list-events", action="store_true", help="list table events")
+    ap.add_argument("--list-events", action="store_true",
+                    help="list the distances the table covers (its internal row names, for reference - not an input)")
     ap.add_argument("--show-standard", action="store_true",
                     help="also show open/age standard and time at 100%%")
     ap.add_argument("--ui-parity", action="store_true",
@@ -120,13 +120,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.time is None or args.age is None:
         ap.error("a time and --age are required")
-    if args.distance is None and args.event is None:
-        ap.error("pass --distance or --event")
+    if args.distance is None:
+        ap.error("pass --distance, e.g. --distance 10k")
 
     time_s = parse_time(args.time)
     dist_km = parse_distance(args.distance) if args.distance else None
     try:
-        g = t.grade(sex, args.age, time_s, dist_km=dist_km, event=args.event)
+        g = t.grade(sex, args.age, time_s, dist_km)
     except OutOfRange as exc:
         raise SystemExit(f"error: {exc}") from None
 
@@ -135,7 +135,6 @@ def main(argv: list[str] | None = None) -> int:
         "sex": sex,
         "age": args.age,
         "year": args.year,
-        "event": args.event,
         "distance_km": dist_km,
         "time_s": time_s,
         "time": format_time(time_s, 1),

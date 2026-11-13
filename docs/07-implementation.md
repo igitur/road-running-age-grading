@@ -62,8 +62,11 @@ ui_percent(2400, g.age_standard_s)    # 0.6849 — exactly what the page shows
                                       # (also a fraction: that is 68.49 %)
 ```
 
-`t.grade()` accepts either `event="10kmRoad"` (exact row) or `dist_km=10` (the
-two-axis lookup). `t.lookup()` returns just `(factor, standard)`.
+`t.grade()` takes `dist_km=10` — the distance, always, with the two-axis lookup
+doing the interpolation. `Table.event()` reads a published row out of the data
+(for iteration and verification); it is not an input to grading, and there is no
+label-based shortcut anywhere in the API. `t.lookup()` returns just
+`(factor, standard)`.
 `t.time_for_percent(..., percent)` is the calculator's *Result* button, and takes the
 same fraction: 0.75 means 75 %.
 
@@ -79,7 +82,7 @@ rather than an accident:
 
 ```console
 $ brrag 40:00 --age 40 --sex M --distance 10k
-$ brrag 2:30:00 --age 60 --sex M --event Marathon --json
+$ brrag 2:30:00 --age 60 --sex M --distance marathon --json
 $ brrag 3:15:00 --age 52 --sex F --distance 42.195 --show-standard
 $ brrag --list-events --sex F
 ```

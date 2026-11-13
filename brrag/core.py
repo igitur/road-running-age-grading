@@ -186,18 +186,18 @@ class Tables:
         return i, j, prop
 
     # -- core lookup -----------------------------------------------------
-    def lookup(self, sex: str, age: float, dist_km: float | None = None,
-               event: str | None = None, policy: str = "strict",
-               age_policy: str = "ui") -> Lookup:
-        """Bilinear lookup of (factor, open standard) in age and distance."""
-        if event is not None:
-            e0 = e1 = self.event(event)
-            pd = 0.0
-        elif dist_km is not None:
-            i0, i1, pd = self._bracket_distance(dist_km, policy=policy)
-            e0, e1 = self.events[i0], self.events[i1]
-        else:
-            raise TypeError("pass either event= or dist_km=")
+    def lookup(self, sex: str, age: float, dist_km: float, *,
+               policy: str = "strict", age_policy: str = "ui") -> Lookup:
+        """Bilinear lookup of (factor, open standard) in age and distance.
+
+        `dist_km` is the only way to say which distance: the tables' internal
+        row labels (`10kmRoad`, `Half.Mar`) are not an input anywhere in this
+        package. `Table.event()` still reads a row out of the data for
+        iteration and verification, but it is data access, not a distance
+        grammar.
+        """
+        i0, i1, pd = self._bracket_distance(dist_km, policy=policy)
+        e0, e1 = self.events[i0], self.events[i1]
 
         ia, ib, pa = self._bracket_age(age, policy=age_policy)
 
@@ -210,14 +210,15 @@ class Tables:
         standard = (1.0 - pd) * e0.standard_s + pd * e1.standard_s
         return Lookup(factor=factor, standard_s=standard)
 
-    def grade(self, sex: str, age: float, time_s: float,
-              dist_km: float | None = None, event: str | None = None,
+    def grade(self, sex: str, age: float, time_s: float, dist_km: float, *,
               policy: str = "strict", age_policy: str = "ui") -> Grade:
-        """Grade a performance. `time_s` in seconds; the only unit that matters."""
+        """Grade a performance. `time_s` in seconds; the only unit that matters.
+
+        The distance is `dist_km`, always - 10 km is 10.0, a half is 21.0975.
+        """
         if time_s <= 0:
             raise ValueError("time must be positive")
-        lk = self.lookup(sex, age, dist_km=dist_km, event=event, policy=policy,
-                         age_policy=age_policy)
+        lk = self.lookup(sex, age, dist_km, policy=policy, age_policy=age_policy)
         if lk.factor <= 0:
             raise OutOfRange("non-positive age factor; performance not gradable")
         astd = lk.age_standard_s
@@ -231,12 +232,10 @@ class Tables:
         )
 
     def time_for_percent(self, sex: str, age: float, percent: float,
-                         dist_km: float | None = None,
-                         event: str | None = None,
-                         policy: str = "strict") -> float:
+                         dist_km: float, *, policy: str = "strict") -> float:
         """Inverse: the time that would score `percent` (the calculator's
         'Result' button). `percent` is a fraction: 0.75 for 75 %."""
-        lk = self.lookup(sex, age, dist_km=dist_km, event=event, policy=policy)
+        lk = self.lookup(sex, age, dist_km, policy=policy)
         return lk.age_standard_s / percent
 
 
