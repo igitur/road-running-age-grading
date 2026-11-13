@@ -11,7 +11,7 @@ published calculator does, and what `aggrade` does about it.
 | `age = 5 … 100` (integer) | exact cell | exact cell | The normal case. |
 | `age` fractional, 5 < age ≤ 99 | linear interpolation between neighbouring columns | same (`age_policy="ui"`) | See the 99–100 quirk below. |
 | `age > 100` | clamps to the age-100 column | same, silently | Beyond 100 the underlying single-age bests are thin; the table is not a model of 105-year-olds. |
-| `age` fractional in (99, 100] | **uses the age-100 column, no interpolation** | same by default; `age_policy="linear"` interpolates | Off-by-one in the calculator's search loop. Harmless in practice, fatal to a naive parity test. |
+| `age` fractional in (99, 100] | **uses the age-100 column, no interpolation** | same by default; `age_policy="linear"` interpolates | Off-by-one in the calculator's search loop. Harmless in practice, fatal to a naive parity test. **Published editions only** — a custom table interpolates normally up to its own last supplied age (see [10-excel-addin.md](10-excel-addin.md)). |
 | `age` fractional (VBA `AgeFactor`) | the `age As Integer` argument **rounds it first** | not reproduced | The Excel UDF quietly disagrees with the web calculator for fractional ages. |
 | `distance < 1 mile` | **no result** (blank fields) | `OutOfRange`; `policy="clamp"` uses the mile row | The calculator's search loop starts at index −1 and never recovers. |
 | `distance > 200 km` | **no result** (blank fields) | `OutOfRange`; `policy="clamp"` uses the 200 km row | Off-by-one: its loop pushes the index one past the end. |

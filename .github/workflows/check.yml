@@ -60,3 +60,6 @@ jobs:
 
       - name: Excel add-in — core test suite
         run: make xll-test
+
+      - name: Excel add-in — sample workbook up to date
+        run: python3 xll/examples/build_sample_workbook.py --check

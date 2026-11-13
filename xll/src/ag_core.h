@@ -75,6 +75,13 @@ struct EventRow {
 
 struct SexTable {
     bool present = false;
+    // The published calculator clamps any age in (99, 100] to the age-100
+    // factors instead of interpolating — a faithful quirk of its search loop,
+    // kept so results match it exactly. That rule is an artefact of a grid that
+    // ends at 100 and must NOT be applied to a custom table whose last two ages
+    // might be 60 and 65, where it would turn 61 into 65. Built-in editions set
+    // this; ad hoc tables leave it false.
+    bool ui_age_quirk = false;
     std::vector<int> ages;              // ascending, e.g. 5..100
     std::vector<float> factors;         // events x ages, event-major
     std::size_t n_events = 0;

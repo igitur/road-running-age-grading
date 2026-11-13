@@ -19,6 +19,7 @@ Full documentation lives with the add-in:
 | [xll/docs/ad-hoc-tables.md](../xll/docs/ad-hoc-tables.md) | custom table formats and the alternatives rejected |
 | [xll/docs/tables-and-caching.md](../xll/docs/tables-and-caching.md) | where several tables live, and the cache |
 | [xll/docs/framework-patches.md](../xll/docs/framework-patches.md) | what had to be patched in the xll framework to build this at all |
+| [xll/examples/age-grading-sample.xlsx](../xll/examples/age-grading-sample.xlsx) | a worked workbook: all twelve functions, live, with expected values and an OK/MISMATCH check |
 
 ## Design decisions worth recording here
 

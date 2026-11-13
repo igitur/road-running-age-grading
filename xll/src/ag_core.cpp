@@ -312,13 +312,17 @@ Lookup lookup(const Table& t, int sex, double age, double distance_km) {
     const std::vector<int>& ages = st.ages;
     if (std::isnan(age)) throw Error{Err::Num, "age is blank"};
     if (age < ages.front()) age = ages.front();
-    if (age > static_cast<double>(ages[ages.size() - 2])) age = ages.back();
+    // Published editions reproduce the calculator's (99, 100] clamp; custom
+    // tables interpolate normally up to their last supplied age.
+    if (st.ui_age_quirk && age > static_cast<double>(ages[ages.size() - 2])) {
+        age = ages.back();
+    }
 
     std::size_t ia = 0, ib = 0;
     double pa = 0;
     if (age <= ages.front()) {
         ia = ib = 0;
-    } else if (age > ages[ages.size() - 2]) {
+    } else if (age >= ages.back()) {
         ia = ib = ages.size() - 1;
     } else {
         std::size_t i = 0;
@@ -511,8 +515,13 @@ Table parse_table(const Matrix& m, const std::string& name) {
                 const Cell& s = m.at(r, static_cast<std::size_t>(c.std_));
                 if (!s.is_blank()) {
                     double secs = require_time(s, "OpenStd", r);
+                    // The standard belongs to the row's sex, not to the
+                    // distance: a male 10 km standard is 26:24 and a female one
+                    // 28:46. Copying it to the other sex silently graded that
+                    // sex against the wrong standard (the first sex listed in
+                    // the table won for both). The other sex falls back to the
+                    // built-in standard, or fails with a clear message.
                     std_of[sex].emplace(key, secs);
-                    std_of[1 - sex].emplace(key, secs);
                 }
             }
         }
@@ -786,6 +795,7 @@ void Registry::ensure_builtins() {
             if (gs.n_events == 0 || gs.factors == nullptr) continue;
             SexTable& st = t.sex[s];
             st.present = true;
+            st.ui_age_quirk = true;          // published editions only
             st.ages.assign(gs.ages, gs.ages + gs.n_ages);
             st.n_events = static_cast<std::size_t>(gs.n_events);
             st.factors.assign(gs.factors, gs.factors + gs.n_events * gs.n_ages);

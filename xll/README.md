@@ -66,6 +66,27 @@ length as the others** — the rule you would expect for a squad sheet:
 Length mismatches never silently misalign rows: they return `#NUM!` and
 `AG.LASTERROR()` names both arguments and both counts.
 
+## Sample workbook
+
+`examples/age-grading-sample.xlsx` is a worked workbook that exercises all twelve
+functions: a twelve-athlete squad graded with columns and with one `AG.BLOCK`
+call, every scalar function, the four editions, the vector rules and their
+errors, both custom-table layouts, time formats, and a reference sheet. Live
+formulas sit next to the expected answers (grey) with an automatic OK/MISMATCH
+verdict, so the workbook doubles as an acceptance test: load the add-in, open it,
+and look for a MISMATCH.
+
+```console
+$ make sample                 # regenerate from the verified implementation
+$ python3 examples/build_sample_workbook.py --check   # CI: is it stale?
+```
+
+Every number in it is computed by `aggrade` at build time — nothing is typed by
+hand, so it can be rebuilt after any change to the tables. The custom-table
+expected values were additionally checked against the C++ itself
+(`test_main.cpp`), and the published-table values against the calculator's own
+JavaScript (23 cases, worst delta 0.006 pp).
+
 ## Build
 
 ```console

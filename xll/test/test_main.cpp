@@ -292,6 +292,27 @@ void test_adhoc() {
     const ag::Out a30 = ag::grade(txt("M"), num(30), num(10.0), num(2400), tbl);
     NEAR(a10.v[0], a30.v[0], 1e-9);
 
+    // A custom table interpolates right up to its own last supplied age. The
+    // published calculator clamps (99, 100] to 100 because its grid ends there;
+    // applying that rule to a club table whose ages are 45..65 would turn 61
+    // into 65 and lose five years of the curve.
+    const ag::Matrix sparse = mat({
+        {"Sex", "Event", "OpenStd", "45", "50", "55", "60", "65"},
+        {"M", "10kmRoad", "26:24", "0.9261", "0.8886", "0.8511", "0.8136", "0.7761"},
+    });
+    const ag::Value sp = ag::Value::of_matrix(sparse);
+    const double want61 = 100.0 * (1584.0 / (0.8136 + 0.2 * (0.7761 - 0.8136))) / 2400.0;
+    NEAR(ag::grade(txt("M"), num(61), num(10.0), num(2400), sp).v[0], want61, 1e-3);
+    const double want64 = 100.0 * (1584.0 / (0.8136 + 0.8 * (0.7761 - 0.8136))) / 2400.0;
+    NEAR(ag::grade(txt("M"), num(64), num(10.0), num(2400), sp).v[0], want64, 1e-3);
+    // ...and still clamps above its own top age
+    NEAR(ag::grade(txt("M"), num(80), num(10.0), num(2400), sp).v[0],
+         100.0 * (1584.0 / 0.7761) / 2400.0, 1e-3);
+
+    // the published editions keep the calculator's (99, 100] clamp
+    NEAR(ag::factor_of(txt("M"), num(99.5), num(10.0), txt("2025")).v[0],
+         ag::factor_of(txt("M"), num(100), num(10.0), txt("2025")).v[0], 1e-9);
+
     // distance interpolation inside the ad hoc table (between 10 km and 42.195)
     const ag::Out mid = ag::grade(txt("M"), num(40), num(21.0975), num(7200), tbl);
     OK(!std::isnan(mid.v[0]));
@@ -319,6 +340,25 @@ void test_adhoc() {
     const ag::Out lf = ag::grade(txt("M"), num(40), num(10.0), num(2400),
                                  ag::Value::of_matrix(longform));
     NEAR(lf.v[0], g.v[0], 1e-9);
+
+    // Each sex keeps its own OpenStd in the long layout. Regression: the parser
+    // used to copy every row's standard into both sexes, so whichever sex came
+    // first in the table graded both (a female 10 km run scored against the
+    // male 26:24 standard, 7 percentage points too high).
+    const ag::Matrix longsex = mat({
+        {"Sex", "Event", "Age", "Factor", "OpenStd"},
+        {"M", "10kmRoad", "30", "1", "26:24"},
+        {"M", "10kmRoad", "50", "0.8", "26:24"},
+        {"F", "10kmRoad", "30", "1", "28:46"},
+        {"F", "10kmRoad", "50", "0.8", "28:46"},
+    });
+    const ag::Value lsx = ag::Value::of_matrix(longsex);
+    NEAR(ag::grade(txt("M"), num(30), num(10.0), num(2400), lsx).v[0],
+         100.0 * (1584.0 / 1.0) / 2400.0, 1e-3);
+    NEAR(ag::grade(txt("F"), num(30), num(10.0), num(2400), lsx).v[0],
+         100.0 * (1726.0 / 1.0) / 2400.0, 1e-3);
+    NEAR(ag::grade(txt("F"), num(50), num(10.0), num(2400), lsx).v[0],
+         100.0 * (1726.0 / 0.8) / 2400.0, 1e-3);
 
     // OpenStd may be omitted when the distance is a published one
     const ag::Matrix nostd = mat({

@@ -68,6 +68,7 @@ Detected by the presence of both an `Age` and a `Factor` column.
 | A blank `Sex` cell inherits the row above | lets you write `M` once per block |
 | Ages may be any subset of 1–120, in any header order, unevenly spaced | club tables rarely have all 96 |
 | Missing ages inside the row are interpolated; ends are clamped | makes short tables usable |
+| Ages are interpolated right up to the table's own last supplied age — a table of 45…65 interpolates 61, it does not jump to 65 | the published editions' (99, 100] quirk is an artefact of a grid ending at 100 and would be nonsense here |
 | Factors must be in `(0, 1]` | a factor above 1 would mean "faster than the world record for your age" |
 | A blank row between blocks is ignored | pasted tables often have them |
 | One sex only is fine — the other sex then errors rather than silently grading wrongly | half a table is legitimate |

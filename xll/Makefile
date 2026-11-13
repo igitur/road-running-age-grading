@@ -9,6 +9,7 @@
 #   make verify     inspect the .xll export/import tables
 #   make tables     regenerate src/ag_tables_generated.h from ../data
 #   make expectations  regenerate test/expected.h from the Python implementation
+#   make sample     regenerate examples/age-grading-sample.xlsx
 #   make clean
 #
 # Requirements: sudo apt install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
@@ -36,7 +37,7 @@ NFLAGS    := -std=c++17 -O2 -Wall -Wextra -Wno-unused-parameter -I src -I test
 LIBOBJS   := auto.o dllmain.o error.o XLCALL.o defines.o excel4_compat.o
 OBJS      := age_grading.o ag_core.o ag_api.o $(LIBOBJS)
 
-.PHONY: all test xll verify tables expectations clean shim
+.PHONY: all test xll verify tables expectations sample clean shim
 
 all: test xll verify
 
@@ -86,6 +87,12 @@ verify: $(NAME).xll
 	if [ $$missing -eq 0 ]; then echo "  all .def symbols exported"; else exit 1; fi
 	@echo "--- imports (must be system DLLs only) ---"
 	@x86_64-w64-mingw32-objdump -p $(NAME).xll | awk '/DLL Name/{print $$3}' | sort -u
+
+# ------------------------------------------------------------ sample book --
+sample: examples/age-grading-sample.xlsx
+
+examples/age-grading-sample.xlsx: examples/build_sample_workbook.py ../aggrade/core.py ../data/mldr_road.json
+	python3 examples/build_sample_workbook.py
 
 # ------------------------------------------------------- generated sources --
 tables: src/ag_tables_generated.h

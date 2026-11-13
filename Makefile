@@ -17,6 +17,7 @@ help:
 	@echo "check    verify + curve + wiki link check   <-- the CI target"
 	@echo "check-links  verify every docs/ cross-page link and anchor"
 	@echo "xll-test verify the Excel add-in core (needs g++ only)"
+	@echo "sample   regenerate the sample workbook (needs openpyxl)"
 	@echo "all      fetch + unpack + data + verify + curve + wiki"
 
 all: fetch unpack data verify curve wiki
@@ -60,13 +61,17 @@ check-links:
 xll-test:
 	$(MAKE) -C xll test
 
+sample:
+	$(PY) xll/examples/build_sample_workbook.py
+
 check:
 	$(PY) tools/verify.py --all && \
 	$(PY) tools/reproduce_curve.py && \
 	$(PY) tools/render_wiki.py --check && \
 	$(PY) xll/tools/gen_tables.py --check && \
 	$(PY) xll/tools/gen_expectations.py --check && \
-	$(MAKE) -C xll test
+	$(MAKE) -C xll test && \
+	$(PY) xll/examples/build_sample_workbook.py --check
 
 clean:
 	rm -rf wiki raw
