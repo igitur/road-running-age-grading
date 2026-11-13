@@ -39,6 +39,25 @@ practice. Times returned by `AG.GRADEDTIME`, `AG.STANDARD` and `AG.TIMEFORPCT`
 are Excel time values — format the column as `[h]:mm:ss`, or multiply by 86400
 for seconds.
 
+### Result shapes
+
+A vector argument produces a vector result of the **same shape**, so the room you
+leave matters:
+
+| Function | Scalar arguments | Vector arguments |
+| --- | --- | --- |
+| `AG.GRADE`, `AG.GRADEDTIME`, `AG.FACTOR`, `AG.STANDARD`, `AG.TIMEFORPCT` | 1 × 1 | same shape as the input vector |
+| `AG.BLOCK` | 1 × 5 | n × 5 (one row per input) |
+| `AG.TABLEINFO` | 1 × 4 | 1 × 4 |
+| `AG.CACHEINFO` | 1 × 6 | 1 × 6 |
+| `AG.TABLES` | n × 1 — one edition per **row** | n × 1 |
+| `AG.VERSION`, `AG.LASTERROR` | 1 × 1 (text) | 1 × 1 |
+
+`AG.TABLES` is the one to watch: it returns a column, so it needs empty cells
+*below* the anchor. Reserve a row for it and Excel gives you `#SPILL!`, because
+the cell underneath is already in use. Nothing is transposed for you — wrap the
+call in `TRANSPOSE()` if you want it the other way round.
+
 ### Distances
 
 A number with a unit, or one of the two races by name:

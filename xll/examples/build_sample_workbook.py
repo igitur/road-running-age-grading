@@ -17,6 +17,7 @@ first sheet.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -29,6 +30,7 @@ from openpyxl import Workbook, load_workbook              # noqa: E402
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # noqa: E402
 from openpyxl.worksheet.properties import PageSetupProperties  # noqa: E402
 from openpyxl.utils import get_column_letter              # noqa: E402
+from openpyxl.utils.cell import range_boundaries          # noqa: E402
 from openpyxl.worksheet.formula import ArrayFormula       # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "age-grading-sample.xlsx"
@@ -187,17 +189,26 @@ def widths(ws, spec: dict[str, int]) -> None:
         ws.column_dimensions[col].width = w
 
 
-_SPILLS: list[tuple[str, str, str]] = []      # (sheet, anchor, area)
+# (sheet, anchor, area, shape). A function that returns a column needs a column
+# of room: a horizontal reservation for a vertical result is #SPILL! in Excel,
+# because the first cell below the anchor is already occupied.
+# every live AG.* formula, and every reserved spill area
+_LIVE: set[tuple[str, str]] = set()
+_SPILLS: list[tuple[str, str, str, tuple[int, int] | None]] = []
 
 
 def live(ws, ref: str, formula: str, fmt: str | None = None,
-         ref_range: str | None = None):
+         ref_range: str | None = None, shape: tuple[int, int] | None = None):
     """A live AG.* formula.
 
     Written as a plain formula, never a legacy Ctrl+Shift+Enter array formula:
     Excel's dynamic arrays spill the result on their own, so `ref_range` only
     says how much area to pre-format. Nothing is written into the cells the
     spill will cover — a spilled value lands on an empty cell.
+
+    `shape` is (rows, columns) of the result, and validate() checks the reserved
+    area against it. Getting that wrong is invisible in the generator and fatal
+    in Excel.
     """
     # A dynamic array formula is stored as a one-cell array formula (ref = the
     # anchor itself) carrying the XLDAPR cell metadata added in postprocess().
@@ -205,8 +216,9 @@ def live(ws, ref: str, formula: str, fmt: str | None = None,
     # Enter formula (curly braces, no spilling) and rewrites a bare formula to
     # "=@AG.GRADE(...)" - implicit intersection - which spills nothing.
     ws[ref] = ArrayFormula(ref=ref, text=formula)
+    _LIVE.add((ws.title, ref))
     if ref_range:
-        _SPILLS.append((ws.title, ref, ref_range))
+        _SPILLS.append((ws.title, ref, ref_range, shape))
     block = ws[ref_range] if ref_range else ((ws[ref],),)
     for row in block:
         for c in (row if isinstance(row, tuple) else (row,)):
@@ -222,6 +234,20 @@ def expected(ws, ref: str, value, fmt: str | None = None):
     c.fill, c.border, c.alignment, c.font = FILL_EXP, BOX, CENTER, F_BODY
     if fmt:
         c.number_format = fmt
+
+
+def show_call(ws, ref: str, text: str) -> None:
+    """Write a formula as text so the reader can see what was called.
+
+    Assigning a string that starts with "=" makes openpyxl write a formula, so a
+    label like =AG.FACTOR("M",B6:B9,10) would actually run - and with the add-in
+    loaded it would spill over the rows below it. Forcing the string data type
+    stores the text, which is what Excel does for an apostrophe-prefixed cell.
+    """
+    c = ws[ref]
+    c.value = text
+    c.data_type = "s"
+    c.font, c.border, c.alignment = F_MONO, BOX, LEFT
 
 
 def note(ws, ref: str, text: str):
@@ -269,6 +295,9 @@ def sheet_start(wb: Workbook) -> None:
             "one-cell array formula carrying dynamic-array metadata (xl/metadata.xml). Without "
             "that mark Excel reads such a cell as a legacy Ctrl+Shift+Enter formula and shows it "
             "as {=AG.GRADE(...)}; with it there are no braces and multi-value results spill.",
+            "A vector in gives a vector out, so leave room: AG.FACTOR on a column of ages fills "
+            "a column, and AG.TABLES always returns one edition per row. A spill that runs into a "
+            "used cell is #SPILL! — nothing is transposed automatically.",
             "Dynamic arrays need Excel 365 or Excel 2021. In Excel 2019 and older the spill simply "
             "will not happen and you will see one value; sheet 2, One call, shows every function "
             "returning a single value if you need that.",
@@ -400,20 +429,20 @@ def sheet_squad(wb: Workbook) -> None:
     # four separate formulas, each entered once
     live(ws, f"F{first}", f"=AG.GRADE($B${first}:$B${last},$C${first}:$C${last},"
                           f"$D${first}:$D${last},$E${first}:$E${last})",
-         PCT_FMT, ref_range=f"F{first}:F{last}")
+         PCT_FMT, ref_range=f"F{first}:F{last}", shape=(last - first + 1, 1))
     live(ws, f"I{first}", f"=AG.GRADEDTIME($B${first}:$B${last},$C${first}:$C${last},"
                           f"$D${first}:$D${last},$E${first}:$E${last})",
-         TIME_FMT, ref_range=f"I{first}:I{last}")
+         TIME_FMT, ref_range=f"I{first}:I{last}", shape=(last - first + 1, 1))
     live(ws, f"J{first}", f"=AG.FACTOR($B${first}:$B${last},$C${first}:$C${last},"
                           f"$D${first}:$D${last})",
-         FAC_FMT, ref_range=f"J{first}:J{last}")
+         FAC_FMT, ref_range=f"J{first}:J{last}", shape=(last - first + 1, 1))
     live(ws, f"K{first}", f"=AG.STANDARD($B${first}:$B${last},$C${first}:$C${last},"
                           f"$D${first}:$D${last})",
-         TIME_FMT, ref_range=f"K{first}:K{last}")
+         TIME_FMT, ref_range=f"K{first}:K{last}", shape=(last - first + 1, 1))
     # one call, five columns
     live(ws, f"M{first}", f"=AG.BLOCK($B${first}:$B${last},$C${first}:$C${last},"
                           f"$D${first}:$D${last},$E${first}:$E${last})",
-         None, ref_range=f"M{first}:Q{last}")
+         None, ref_range=f"M{first}:Q{last}", shape=(last - first + 1, 5))
     for i in range(len(SQUAD)):
         row = first + i
         ws[f"M{row}"].number_format = FAC_FMT
@@ -562,9 +591,6 @@ def sheet_functions(wb: Workbook) -> None:
 
     row = r + 2
     for fn, args, formula, exp, why in (
-        ("AG.TABLES", "(none)", "=AG.TABLES()", [2025, 2020, 2015, 2010],
-         "The editions compiled into this build, newest first. Any of them can be the fifth "
-         "argument of a grading function."),
         ("AG.TABLEINFO", "(default table)", "=AG.TABLEINFO()", [2025, 22, 96, 2],
          "One row: year, distances, ages, sexes."),
         ("AG.TABLEINFO", "2020", "=AG.TABLEINFO(2020)", [2020, 22, 96, 2],
@@ -573,7 +599,7 @@ def sheet_functions(wb: Workbook) -> None:
         for col, value in (("A", fn), ("B", args)):
             c = ws[f"{col}{row}"]
             c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
-        live(ws, f"C{row}", formula, None, ref_range=f"C{row}:F{row}")
+        live(ws, f"C{row}", formula, None, ref_range=f"C{row}:F{row}", shape=(1, len(exp)))
         c = ws[f"G{row}"]
         c.value = (f'=IF(SUMPRODUCT(--(ABS(C{row}:F{row}-C{row + 1}:F{row + 1})>0.0001))=0,'
                    f'"OK","MISMATCH")')
@@ -587,6 +613,35 @@ def sheet_functions(wb: Workbook) -> None:
         ws.merge_cells(start_row=row, start_column=8, end_row=row, end_column=10)
         ws.row_dimensions[row].height = 30
         row += 2
+
+    # AG.TABLES() returns one edition per row, so it cannot live in the
+    # one-row-per-function table above: its 4-row spill would land on the row
+    # below and Excel would show #SPILL!.
+    subhead(ws, row, "AG.TABLES: the editions compiled into this build, newest first")
+    row += 1
+    header_row(ws, row, ["Function", "Arguments", "live (a column)", "expected", "check"])
+    c = ws.cell(row=row, column=6, value="What it means")
+    c.font, c.fill, c.alignment, c.border = F_HDR, FILL_HDR, CENTER, BOX
+    ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
+    row += 1
+    for col, value in (("A", "AG.TABLES"), ("B", "(none)")):
+        c = ws[f"{col}{row}"]
+        c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
+    live(ws, f"C{row}", "=AG.TABLES()", None, ref_range=f"C{row}:C{row + 3}", shape=(4, 1))
+    for j, v in enumerate([2025, 2020, 2015, 2010]):
+        expected(ws, f"D{row + j}", v, "0")
+    c = ws[f"E{row}"]
+    c.value = (f'=IF(COUNTA(C{row}:C{row + 3})=0,"",IFERROR(IF(SUMPRODUCT('
+               f'--(ABS(C{row}:C{row + 3}-D{row}:D{row + 3})>0.0001))=0,"OK","MISMATCH"),""))')
+    c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
+    c = ws.cell(row=row, column=6,
+                value="One edition per row: the function returns a column, not a row, which is "
+                      "why it has its own block. Any of them can be the fifth argument of a "
+                      "grading function.")
+    c.font, c.alignment = F_BODY, LEFT_WRAP
+    ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=10)
+    ws.row_dimensions[row].height = 44
+    row += 5
 
     for fn, args, formula, exp_text, why, check in (
         ("AG.LASTERROR", "(none)", "=AG.LASTERROR()",
@@ -616,7 +671,7 @@ def sheet_functions(wb: Workbook) -> None:
     for col, value in (("A", "AG.CACHEINFO"), ("B", "(none)")):
         c = ws[f"{col}{row}"]
         c.value, c.font, c.border, c.alignment = value, F_MONO, BOX, LEFT
-    live(ws, f"C{row}", "=AG.CACHEINFO()", None, ref_range=f"C{row}:H{row}")
+    live(ws, f"C{row}", "=AG.CACHEINFO()", None, ref_range=f"C{row}:H{row}", shape=(1, 6))
     note_block(row, "Six counters: built-in editions, loaded CSVs, custom ranges held, cache "
                     "hits, misses, capacity. No expected values - they depend on what this "
                     "workbook has done. Recalculate and watch the hit count climb: a range table "
@@ -730,46 +785,61 @@ def sheet_vectors(wb: Workbook) -> None:
               "The rules the add-in enforces on every call: scalars broadcast, vectors must "
               "match, bad rows fail alone.")
 
-    subhead(ws, 4, "Alignment")
-    header_row(ws, 5, ["Call", "why", "live", "expected", "check", "Result"])
-    rows = [
-        ('=AG.FACTOR("M",{40;50;60;70},10)',
-         "A scalar sex and a scalar distance broadcast against a column of ages",
-         None, "four factors, one per age"),
-        ('=AG.GRADE(C9:C12,C9:C12,10,2400)',
-         "Every vector the same length: 4 rows in, 4 rows out",
-         None, "one grade per row"),
-    ]
-    # vector demo 1: ages as a column in B
+    subhead(ws, 4, "Alignment: a vertical vector in, a vertical vector out")
+    header_row(ws, 5, ["Call", "age in", "live factor", "expected", "check", "Note"])
     for i, age in enumerate([40, 50, 60, 70]):
-        ws[f"B{6 + i}"].value = age
-        ws[f"B{6 + i}"].number_format = "0"
-        ws[f"B{6 + i}"].fill, ws[f"B{6 + i}"].border = FILL_IN, BOX
-        ws[f"B{6 + i}"].font, ws[f"B{6 + i}"].alignment = F_BODY, CENTER
-    ws["A6"].value = '=AG.FACTOR("M",B6:B9,10)'
-    ws["A6"].font, ws["A6"].border = F_MONO, BOX
-    live(ws, "C6", "=AG.FACTOR(\"M\",B6:B9,10)", FAC_FMT, ref_range="C6:F6")
+        c = ws[f"B{6 + i}"]
+        c.value, c.number_format = age, "0"
+        c.fill, c.border, c.font, c.alignment = FILL_IN, BOX, F_BODY, CENTER
+    show_call(ws, "A6", '=AG.FACTOR("M",B6:B9,10)')
+    # four ages down -> four factors down. Reserving a row here instead would put
+    # the spill on top of row 7 and Excel would refuse it with #SPILL!.
+    live(ws, "C6", '=AG.FACTOR("M",B6:B9,10)', FAC_FMT, ref_range="C6:C9", shape=(4, 1))
+    for i, age in enumerate([40, 50, 60, 70]):
+        row = 6 + i
+        expected(ws, f"D{row}", round(grade("M", age, 10.0, 2400).factor, 4), FAC_FMT)
+        c = ws[f"E{row}"]
+        # plain verdict: guard_verdicts() adds the blank/error shield itself
+        c.value = f'=IF(ABS(C{row}-D{row})<0.0001,"OK","MISMATCH")' 
+        c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
+    c = ws["F6"]
+    c.value = ("A scalar sex and a scalar distance broadcast against the column of ages in "
+               "B6:B9. The result keeps the shape of the vector you pass, so it fills C6:C9.")
+    c.font, c.alignment = F_BODY, LEFT_WRAP
+    ws.merge_cells("F6:F9")
+
+    # ---- the same call with the ages across ---------------------------------
+    subhead(ws, 11, "The result follows the shape of the vector: the same call, sideways")
+    show_call(ws, "A12", '=AG.FACTOR("M",B12:E12,10)')
     for j, age in enumerate([40, 50, 60, 70]):
-        expected(ws, f"{get_column_letter(3 + j)}7",
+        c = ws.cell(row=12, column=2 + j, value=age)
+        c.number_format, c.fill, c.border = "0", FILL_IN, BOX
+        c.font, c.alignment = F_BODY, CENTER
+    live(ws, "B13", '=AG.FACTOR("M",B12:E12,10)', FAC_FMT, ref_range="B13:E13", shape=(1, 4))
+    for j, age in enumerate([40, 50, 60, 70]):
+        expected(ws, f"{get_column_letter(2 + j)}14",
                  round(grade("M", age, 10.0, 2400).factor, 4), FAC_FMT)
-    ws["G6"].value = ("Scalar sex and scalar distance broadcast; the four ages each get their own "
-                      "factor. Expected values sit below, at C7:F7.")
-    ws["G6"].font, ws["G6"].alignment = F_BODY, LEFT_WRAP
-    ws["G7"].value = "=IF(SUMPRODUCT(--(ABS(C6:F6-C7:F7)>0.0001))=0,\"OK\",\"MISMATCH\")"
-    ws["G7"].fill, ws["G7"].border, ws["G7"].alignment, ws["G7"].font = (
-        FILL_CHECK, BOX, CENTER, F_BODY)
+    c = ws["F13"]
+    c.value = ('=IF(SUMPRODUCT(--(ABS(B13:E13-B14:E14)>0.0001))=0,"OK","MISMATCH")')
+    c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
+    note(ws, "A15", "Identical arguments with the ages across instead of down: four factors across. "
+                    "Nothing is transposed for you and nothing needs to be — put =TRANSPOSE() round "
+                    "the call only if you want the other orientation.")
+    c = ws["A14"]
+    c.value = "expected"
+    c.font, c.alignment = F_NOTE, LEFT
+    c = ws["A13"]
+    c.value = "live"
+    c.font, c.alignment = F_NOTE, LEFT
 
     # ---- length mismatch ----
-    r = 10
+    r = 17
     subhead(ws, r, "The one rule that is not Excel-like: vectors must be the same length")
-    ws[f"A{r + 1}"].value = '=AG.GRADE("M",{40;50;60},10,{2400;2500})'
-    ws[f"A{r + 1}"].font, ws[f"A{r + 1}"].border = F_MONO, BOX
+    show_call(ws, f"A{r + 1}", '=AG.GRADE("M",{40;50;60},10,{2400;2500})')
     live(ws, f"B{r + 1}", '=AG.GRADE("M",{40;50;60},10,{2400;2500})', PCT_FMT)
     ws[f"C{r + 1}"].value = "#NUM!"
     ws[f"C{r + 1}"].font, ws[f"C{r + 1}"].alignment = F_BODY, CENTER
-    ws[f"D{r + 1}"].value = '=AG.LASTERROR()'
-    ws[f"D{r + 1}"].font, ws[f"D{r + 1}"].border = F_MONO, BOX
-    ws[f"D{r + 1}"].fill = FILL_LIVE
+    live(ws, f"D{r + 1}", "=AG.LASTERROR()")
     ws[f"E{r + 1}"].value = ("Three ages and two times. The call fails as a whole and AG.LASTERROR() "
                              "names both arguments and both counts — deliberately not Excel-style "
                              "broadcasting, which would pair one athlete's age with another's time.")
@@ -809,7 +879,7 @@ def sheet_vectors(wb: Workbook) -> None:
     live(ws, f"E{first}",
          f"=AG.GRADE($A${first}:$A${first + 4},$B${first}:$B${first + 4},"
          f"$C${first}:$C${first + 4},$D${first}:$D${first + 4})",
-         PCT_FMT, ref_range=f"E{first}:E{first + 4}")
+         PCT_FMT, ref_range=f"E{first}:E{first + 4}", shape=(5, 1))
 
     # ---- age rules ----
     r = first + len(cases) + 2
@@ -1236,14 +1306,32 @@ def validate(wb) -> list[str]:
         # a dynamic array cannot spill onto a cell that already holds a value
         # (Excel shows #SPILL!), so every cell in an intended spill area except
         # its anchor must be empty
-        for sheet, anchor, area in _SPILLS:
+        for sheet, anchor, area, shape in _SPILLS:
             if sheet != ws.title:
                 continue
+            min_c, min_r, max_c, max_r = range_boundaries(area)
+            if f"{get_column_letter(min_c)}{min_r}" != anchor:
+                problems.append(f"{ws.title}: spill area {area} does not start at {anchor}")
+            if shape and (max_r - min_r + 1, max_c - min_c + 1) != tuple(shape):
+                problems.append(
+                    f"{ws.title}: {anchor} reserves {max_r - min_r + 1}x{max_c - min_c + 1} "
+                    f"({area}) but the function returns {shape[0]}x{shape[1]} "
+                    f"-> #SPILL! or a truncated result")
             for cell in sorted(cell_refs(area) - {anchor}):
                 v = ws[cell].value
                 if v is not None and not (isinstance(v, str) and not v.strip()):
                     problems.append(f"{ws.title}: {anchor} spills over {cell}, "
                                     f"which holds {v!r} -> #SPILL! in Excel")
+
+        # an AG.* formula outside live() is a label that will actually run
+        for row in ws.iter_rows():
+            for c in row:
+                if c.data_type != "f" or not isinstance(c.value, str):
+                    continue
+                if re.match(r"^\s*=?\s*AG\.", c.value) and (ws.title, c.coordinate) not in _LIVE:
+                    problems.append(
+                        f"{ws.title}!{c.coordinate}: runs {c.value[:40]} but is not a live "
+                        f"cell - use show_call() for a label")
 
         # array formulas must not touch a merge
         for row in ws.iter_rows():
