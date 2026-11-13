@@ -1071,7 +1071,7 @@ def sheet_custom(wb: Workbook) -> None:
         c.value = f'=IF(ABS(E{row}-F{row})<0.0001,"OK","MISMATCH")'
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         c = ws[f"H{row}"]
-        c.value = (f'=IF(ABS(E{row}-RRAG.GRADE(A{row},C{row},B{row},D{row},{rng}))<0.01,'
+        c.value = (f'=IF(ABS(E{row}-RRAG.GRADE(A{row},C{row},B{row},D{row},{rng}))<0.0001,'
                    f'"OK","MISMATCH")')
         c.fill, c.border, c.alignment, c.font = FILL_CHECK, BOX, CENTER, F_BODY
         c = ws[f"I{row}"]
