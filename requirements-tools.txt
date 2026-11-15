@@ -1,11 +1,12 @@
-# Dependencies for the tools/ scripts only. The brrag library itself imports
-# nothing outside the standard library.
+# Dependencies for the tools/ scripts and the packaging step. The brrag
+# library itself imports nothing outside the standard library.
 #
 #   uv venv --python 3.12 .venv
 #   uv pip install --python .venv/bin/python -r requirements-tools.txt
 
 openpyxl>=3.1.5      # reading the published workbooks (verify.py, reproduce_curve.py)
 oletools>=0.60.2     # extracting the VBA from MLDRRoadFactors2025.xlsm
-pypdf>=7.0.1         # reading the upstream methodology PDFs (notes/ dumps)
+pypdf>=7.1.0         # reading the upstream methodology PDFs (notes/ dumps)
+build>=1.3           # `make dist`: builds the sdist and wheel
 
 # Node.js is also needed for `make verify` check B (runs the calculator's own JS).
